@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM customer_tags\n        WHERE customer_id = $1 AND tag_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2083f7615f6c02d03ee117395ddcc4c91f9dcd52e733d8babbddd1edf5547fcd"
+}

@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT t.id, t.user_id, t.tag_name as \"tag_name!\", t.tag_color as \"tag_color!\", t.description, t.created_at as \"created_at!\", t.updated_at as \"updated_at!\", t.deleted_at\n        FROM tags t\n        INNER JOIN job_seeking_posting_tags jspt ON t.id = jspt.tag_id\n        WHERE jspt.job_seeking_posting_id = $1 AND t.deleted_at IS NULL\n        ORDER BY t.tag_name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "tag_name!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "tag_color!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "deleted_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "3210518c904d7065b14b67dcc8a09c045b3b2f3b9f6710e2721ac85a8879d58b"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO job_posting_tags (job_posting_id, tag_id)\n        VALUES ($1, $2)\n        ON CONFLICT (job_posting_id, tag_id) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3381bddb7a994955f12c3bb4d99422647663cb66ae751985f9f0d3fd43609494"
+}

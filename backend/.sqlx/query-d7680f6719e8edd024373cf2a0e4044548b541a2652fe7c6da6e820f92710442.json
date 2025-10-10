@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM job_posting_tags\n        WHERE job_posting_id = $1 AND tag_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d7680f6719e8edd024373cf2a0e4044548b541a2652fe7c6da6e820f92710442"
+}

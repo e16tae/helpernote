@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id, customer_id, desired_salary, description, preferred_location, employee_fee_rate,\n            settlement_status as \"settlement_status!: SettlementStatus\",\n            settlement_amount, settlement_memo,\n            posting_status as \"posting_status!: PostingStatus\",\n            is_favorite as \"is_favorite!\", created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at\n        FROM job_seeking_postings\n        WHERE customer_id = $1 AND deleted_at IS NULL\n        ORDER BY created_at DESC\n        LIMIT $2 OFFSET $3\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "customer_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "desired_salary",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "preferred_location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "employee_fee_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "settlement_status!: SettlementStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "settlement_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "settlement_memo",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "posting_status!: PostingStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_favorite!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 13,
+        "name": "deleted_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "fcb1b8471ca17e819381b3de6d6890f08bae1fd2cd714a2bcba124e9f636e519"
+}
