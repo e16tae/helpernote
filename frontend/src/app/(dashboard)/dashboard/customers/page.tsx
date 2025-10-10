@@ -23,7 +23,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Loader2, Eye, Pencil, Trash2, Filter, X } from 'lucide-react';
+import { Plus, Loader2, Eye, Pencil, Trash2, Filter, X, Users } from 'lucide-react';
 import { getErrorMessage, getErrorTitle } from '@/lib/error-handler';
 import { Input } from '@/components/ui/input';
 import {
@@ -115,6 +115,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     loadCustomers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, customerType, selectedTagIds, page]);
 
   const handleView = (customer: Customer) => {
