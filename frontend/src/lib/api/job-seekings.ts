@@ -42,7 +42,7 @@ export const jobSeekingsApi = {
   },
 
   // Update status
-  updateStatus: async (id: string, status: JobSeeking['status']) => {
+  updateStatus: async (id: string, status: JobSeeking['posting_status']) => {
     const response = await apiClient.patch<JobSeeking>(`/job-seekings/${id}/status`, { status });
     return response.data;
   },

@@ -7,7 +7,7 @@ export const matchingsApi = {
   getMatchings: async (filters?: MatchingFilters, page = 1, pageSize = 10) => {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
-    if (filters?.settlementStatus) params.append('settlementStatus', filters.settlementStatus);
+    if (filters?.settlement_status) params.append('settlement_status', filters.settlement_status);
     if (filters?.search) params.append('search', filters.search);
     params.append('page', String(page));
     params.append('pageSize', String(pageSize));
@@ -43,7 +43,7 @@ export const matchingsApi = {
   },
 
   // Update status
-  updateStatus: async (id: string, status: Matching['status']) => {
+  updateStatus: async (id: string, status: Matching['matching_status']) => {
     const response = await apiClient.patch<Matching>(`/matchings/${id}/status`, { status });
     return response.data;
   },

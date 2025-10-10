@@ -24,15 +24,15 @@ interface CustomerMemo {
 }
 
 const customerTypeLabels: Record<CustomerType, string> = {
-  employer: '고용주',
-  employee: '근로자',
-  both: '양쪽',
+  Employer: '고용주',
+  Employee: '근로자',
+  Both: '양쪽',
 };
 
 const customerTypeVariants: Record<CustomerType, 'default' | 'secondary' | 'outline'> = {
-  employer: 'default',
-  employee: 'secondary',
-  both: 'outline',
+  Employer: 'default',
+  Employee: 'secondary',
+  Both: 'outline',
 };
 
 export default function CustomerDetailPage() {
@@ -48,27 +48,27 @@ export default function CustomerDetailPage() {
 
   const customer_id = params.id as string;
 
+  const loadCustomer = async () => {
+    try {
+      setLoading(true);
+      const data = await customerApi.getById(parseInt(customer_id));
+      setCustomer(data);
+
+      // Load memos and tags
+      await Promise.all([loadMemos(), loadTags()]);
+    } catch (error) {
+      console.error('Failed to load customer:', error);
+      toast({
+        title: '오류',
+        description: '고객 정보를 불러오는데 실패했습니다.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadCustomer = async () => {
-      try {
-        setLoading(true);
-        const data = await customerApi.getById(parseInt(customer_id));
-        setCustomer(data);
-
-        // Load memos and tags
-        await Promise.all([loadMemos(), loadTags()]);
-      } catch (error) {
-        console.error('Failed to load customer:', error);
-        toast({
-          title: '오류',
-          description: '고객 정보를 불러오는데 실패했습니다.',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (customer_id) {
       loadCustomer();
     }

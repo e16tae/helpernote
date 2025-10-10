@@ -106,14 +106,14 @@ export default function NewMatchingPage() {
 
         // Load job postings (only published and in_progress)
         const jobPostingsResponse = await jobPostingApi.listJobPostings({
-          status: 'Published',
+          status: 'published',
           limit: 100,
         });
         setJobPostings(jobPostingsResponse.job_postings);
 
         // Load job seeking postings (only published and in_progress)
         const jobSeekingsResponse = await jobPostingApi.listJobSeekings({
-          status: 'Published',
+          status: 'published',
           limit: 100,
         });
         setJobSeekings(jobSeekingsResponse.job_seekings);
