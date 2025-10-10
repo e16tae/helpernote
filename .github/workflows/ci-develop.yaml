@@ -73,6 +73,7 @@ jobs:
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://helpernote:testpassword@localhost:5432/helpernote_test
+          SQLX_OFFLINE: true
         run: cargo test --verbose
 
       - name: Build backend
