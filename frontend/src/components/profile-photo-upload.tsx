@@ -9,14 +9,14 @@ import { useToast } from '@/components/ui/use-toast';
 import apiClient from '@/lib/api';
 
 interface ProfilePhotoUploadProps {
-  customerId: number;
+  customer_id: number;
   currentPhotoUrl?: string | null;
   customerName: string;
   onPhotoUploaded?: (photoUrl: string) => void;
 }
 
 export function ProfilePhotoUpload({
-  customerId,
+  customer_id,
   currentPhotoUrl,
   customerName,
   onPhotoUploaded,
@@ -70,7 +70,7 @@ export function ProfilePhotoUpload({
       formData.append('file', file);
 
       const response = await apiClient.post(
-        `/customers/${customerId}/profile-photo`,
+        `/customers/${customer_id}/profile-photo`,
         formData,
         {
           headers: {

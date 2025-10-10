@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomerType } from '@/types/customer';
+import { CustomerType, CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '@/types/customer';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -20,9 +20,7 @@ interface CustomerFiltersProps {
 
 const customerTypeLabels: Record<CustomerType | 'ALL', string> = {
   ALL: '전체',
-  [CustomerType.EMPLOYER]: '고용주',
-  [CustomerType.EMPLOYEE]: '근로자',
-  [CustomerType.BOTH]: '고용주 + 근로자',
+  ...CUSTOMER_TYPE_LABELS,
 };
 
 export function CustomerFilters({

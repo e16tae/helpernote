@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { CustomerType } from '@/types/customer';
+import { CustomerType, CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '@/types/customer';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -25,8 +25,8 @@ import {
 
 const customerFormSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요'),
-  phoneNumber: z.string().min(1, '전화번호를 입력해주세요'),
-  customerType: z.nativeEnum(CustomerType, {
+  phone: z.string().min(1, '전화번호를 입력해주세요'),
+  customerType: z.enum([CUSTOMER_TYPES.Employer, CUSTOMER_TYPES.Employee, CUSTOMER_TYPES.Both], {
     errorMap: () => ({ message: '고객 유형을 선택해주세요' }),
   }),
   email: z.string().email('올바른 이메일을 입력해주세요').optional().or(z.literal('')),
@@ -47,11 +47,7 @@ interface CustomerFormProps {
   submitLabel?: string;
 }
 
-const customerTypeLabels: Record<CustomerType, string> = {
-  [CustomerType.EMPLOYER]: '고용주',
-  [CustomerType.EMPLOYEE]: '근로자',
-  [CustomerType.BOTH]: '고용주 + 근로자',
-};
+const customerTypeLabels = CUSTOMER_TYPE_LABELS;
 
 export function CustomerForm({
   defaultValues,
@@ -63,8 +59,8 @@ export function CustomerForm({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
       name: '',
-      phoneNumber: '',
-      customerType: CustomerType.EMPLOYEE,
+      phone: '',
+      customerType: CUSTOMER_TYPES.Employee,
       email: '',
       address: '',
       detailedAddress: '',
@@ -96,7 +92,7 @@ export function CustomerForm({
 
           <FormField
             control={form.control}
-            name="phoneNumber"
+            name="phone"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>전화번호 *</FormLabel>

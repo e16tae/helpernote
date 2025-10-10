@@ -1,6 +1,6 @@
 'use client';
 
-import { Customer, CustomerType } from '@/types/customer';
+import { Customer, CustomerType, CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '@/types/customer';
 import {
   Table,
   TableBody,
@@ -28,16 +28,12 @@ interface CustomerTableProps {
   onDelete: (customer: Customer) => void;
 }
 
-const customerTypeLabels: Record<CustomerType, string> = {
-  [CustomerType.EMPLOYER]: '고용주',
-  [CustomerType.EMPLOYEE]: '근로자',
-  [CustomerType.BOTH]: '고용주 + 근로자',
-};
+const customerTypeLabels = CUSTOMER_TYPE_LABELS;
 
 const customerTypeVariants: Record<CustomerType, 'default' | 'secondary' | 'outline'> = {
-  [CustomerType.EMPLOYER]: 'default',
-  [CustomerType.EMPLOYEE]: 'secondary',
-  [CustomerType.BOTH]: 'outline',
+  [CUSTOMER_TYPES.Employer]: 'default',
+  [CUSTOMER_TYPES.Employee]: 'secondary',
+  [CUSTOMER_TYPES.Both]: 'outline',
 };
 
 export function CustomerTable({ customers, onView, onEdit, onDelete }: CustomerTableProps) {
@@ -66,17 +62,17 @@ export function CustomerTable({ customers, onView, onEdit, onDelete }: CustomerT
           {customers.map((customer) => (
             <TableRow key={customer.id}>
               <TableCell className="font-medium">{customer.name}</TableCell>
-              <TableCell>{customer.phoneNumber}</TableCell>
+              <TableCell>{customer.phone}</TableCell>
               <TableCell>
-                <Badge variant={customerTypeVariants[customer.customerType]}>
-                  {customerTypeLabels[customer.customerType]}
+                <Badge variant={customerTypeVariants[customer.customer_type]}>
+                  {customerTypeLabels[customer.customer_type]}
                 </Badge>
               </TableCell>
               <TableCell>
                 {customer.address || '-'}
               </TableCell>
               <TableCell>
-                {format(new Date(customer.createdAt), 'yyyy-MM-dd', { locale: ko })}
+                {format(new Date(customer.created_at), 'yyyy-MM-dd', { locale: ko })}
               </TableCell>
               <TableCell>
                 <DropdownMenu>

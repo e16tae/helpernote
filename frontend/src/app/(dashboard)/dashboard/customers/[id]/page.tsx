@@ -46,13 +46,13 @@ export default function CustomerDetailPage() {
   const [addingMemo, setAddingMemo] = useState(false);
   const [tags, setTags] = useState<{ id: number; name: string }[]>([]);
 
-  const customerId = params.id as string;
+  const customer_id = params.id as string;
 
   useEffect(() => {
     const loadCustomer = async () => {
       try {
         setLoading(true);
-        const data = await customerApi.getById(parseInt(customerId));
+        const data = await customerApi.getById(parseInt(customer_id));
         setCustomer(data);
 
         // Load memos and tags
@@ -69,14 +69,14 @@ export default function CustomerDetailPage() {
       }
     };
 
-    if (customerId) {
+    if (customer_id) {
       loadCustomer();
     }
-  }, [customerId, toast]);
+  }, [customer_id, toast]);
 
   const loadTags = async () => {
     try {
-      const response = await apiClient.get(`/api/customers/${customerId}/tags`);
+      const response = await apiClient.get(`/api/customers/${customer_id}/tags`);
       setTags(response.data.tags || []);
     } catch (error) {
       console.error('Failed to load tags:', error);
@@ -85,7 +85,7 @@ export default function CustomerDetailPage() {
 
   const loadMemos = async () => {
     try {
-      const response = await apiClient.get(`/api/customers/${customerId}/memos`);
+      const response = await apiClient.get(`/api/customers/${customer_id}/memos`);
       setMemos(response.data.memos || []);
     } catch (error) {
       console.error('Failed to load memos:', error);
@@ -97,8 +97,8 @@ export default function CustomerDetailPage() {
 
     try {
       setAddingMemo(true);
-      await apiClient.post(`/api/customers/${customerId}/memos`, {
-        customer_id: parseInt(customerId),
+      await apiClient.post(`/api/customers/${customer_id}/memos`, {
+        customer_id: parseInt(customer_id),
         memo_content: newMemo,
       });
       setNewMemo('');
@@ -120,7 +120,7 @@ export default function CustomerDetailPage() {
   };
 
   const handleEdit = () => {
-    router.push(`/dashboard/customers/${customerId}/edit`);
+    router.push(`/dashboard/customers/${customer_id}/edit`);
   };
 
   const handleBack = () => {
@@ -176,7 +176,7 @@ export default function CustomerDetailPage() {
         {/* Profile Photo */}
         <div className="md:col-span-1">
           <ProfilePhotoUpload
-            customerId={parseInt(customerId)}
+            customer_id={parseInt(customer_id)}
             currentPhotoUrl={null}
             customerName={customer.name}
             onPhotoUploaded={() => {

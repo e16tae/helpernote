@@ -18,7 +18,7 @@ import type { JobPostingFormData } from '@/types/job-posting';
 const jobPostingSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요'),
   description: z.string().min(10, '상세 설명을 10자 이상 입력해주세요'),
-  customerId: z.string().min(1, '고객을 선택해주세요'),
+  customer_id: z.string().min(1, '고객을 선택해주세요'),
   location: z.string().min(1, '근무지를 입력해주세요'),
   workType: z.enum(['daily', 'weekly', 'monthly', 'long-term']),
   salary: z.number().min(0, '급여는 0 이상이어야 합니다'),
@@ -55,7 +55,7 @@ export function JobPostingForm({ initialData, onSubmit }: JobPostingFormProps) {
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
-      customerId: initialData?.customerId || '',
+      customer_id: initialData?.customer_id || '',
       location: initialData?.location || '',
       workType: initialData?.workType || 'daily',
       salary: initialData?.salary || 0,
@@ -154,10 +154,10 @@ export function JobPostingForm({ initialData, onSubmit }: JobPostingFormProps) {
           </div>
 
           <div>
-            <Label htmlFor="customerId">고객 *</Label>
-            <Input id="customerId" {...register('customerId')} placeholder="고객 ID" />
-            {errors.customerId && (
-              <p className="text-sm text-destructive mt-1">{errors.customerId.message}</p>
+            <Label htmlFor="customer_id">고객 *</Label>
+            <Input id="customer_id" {...register('customer_id')} placeholder="고객 ID" />
+            {errors.customer_id && (
+              <p className="text-sm text-destructive mt-1">{errors.customer_id.message}</p>
             )}
           </div>
 
