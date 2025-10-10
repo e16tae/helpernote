@@ -32,6 +32,10 @@ Helpernote는 인력소개소 중개자가 구인자와 구직자를 효율적�
 ### Infrastructure
 - **Database**: PostgreSQL
 - **Object Storage**: MinIO
+- **Container Orchestration**: Kubernetes
+- **GitOps**: ArgoCD
+- **CI/CD**: GitHub Actions
+- **Container Registry**: GitHub Container Registry (GHCR)
 - **Development**: Docker Compose
 
 ## 시작하기
@@ -121,6 +125,69 @@ PostgreSQL 스키마는 `database/schema.sql`에 정의되어 있으며, Docker 
 
 - Username: `admin`
 - Password: `password123`
+
+## 배포
+
+### CI/CD 파이프라인
+
+#### GitHub Actions Workflows
+
+**develop 브랜치** (`.github/workflows/ci-develop.yaml`):
+- Backend: rustfmt, clippy, tests, build
+- Frontend: lint, type check, build
+- Docker: build test
+
+**main 브랜치** (`.github/workflows/cd-production.yaml`):
+- Docker 이미지 빌드 및 GHCR 푸시
+- Kubernetes 매니페스트 업데이트
+- ArgoCD 자동 배포 트리거
+
+### Kubernetes 배포
+
+#### 구조
+```
+k8s/
+├── base/                    # Base manifests
+│   ├── backend-deployment.yaml
+│   ├── frontend-deployment.yaml
+│   ├── postgres-statefulset.yaml
+│   └── minio-statefulset.yaml
+└── overlays/
+    └── production/          # Production overrides
+        ├── kustomization.yaml
+        ├── resources-patch.yaml
+        └── ingress-patch.yaml
+```
+
+#### ArgoCD 설정
+- **Application**: `helpernote-production`
+- **Namespace**: `helpernote`
+- **Sync Policy**: Automated (prune, selfHeal)
+- **Source**: `https://github.com/e16tae/helpernote.git` (main 브랜치)
+
+### 배포 문서
+
+상세한 배포 가이드는 다음 문서를 참고하세요:
+- [DEPLOYMENT_STATUS.md](./DEPLOYMENT_STATUS.md) - 현재 배포 상태
+- [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) - 배포 체크리스트
+- [CLAUDE.md](./CLAUDE.md) - 프로젝트 상세 문서
+
+### 배포 확인
+
+```bash
+# GitHub Actions 워크플로우 확인
+https://github.com/e16tae/helpernote/actions
+
+# ArgoCD UI 접속 (포트 포워딩)
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+# Kubernetes 리소스 확인
+kubectl get all -n helpernote
+
+# 애플리케이션 health check
+curl https://api.helpernote.com/health
+curl https://www.helpernote.com/api/health
+```
 
 ## 라이선스
 
