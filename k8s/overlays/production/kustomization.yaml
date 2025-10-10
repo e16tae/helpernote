@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+
+replicas:
+  - name: backend
+    count: 3
+  - name: frontend
+    count: 3
+
+images:
+  - name: ghcr.io/e16tae/helpernote-backend
+    newName: ghcr.io/e16tae/helpernote-backend
+    newTag: latest
+  - name: ghcr.io/e16tae/helpernote-frontend
+    newName: ghcr.io/e16tae/helpernote-frontend
+    newTag: latest
+
+patchesStrategicMerge:
+  - resources-patch.yaml
+  - ingress-patch.yaml

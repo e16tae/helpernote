@@ -1,0 +1,36 @@
+# Production-specific ingress configuration
+# TLS/SSL is already configured - no additional cert-manager needed
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: helpernote-ingress
+  namespace: helpernote
+  annotations:
+    # Force HTTPS in production
+    konghq.com/protocols: "https"
+    # Enable rate limiting
+    konghq.com/plugins: rate-limiting-helpernote
+spec:
+  rules:
+    # Main domain - Frontend
+    - host: www.helpernote.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+    # API subdomain - Backend
+    - host: api.helpernote.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000

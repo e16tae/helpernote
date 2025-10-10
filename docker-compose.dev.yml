@@ -1,0 +1,46 @@
+services:
+  # PostgreSQL Database (Development)
+  postgres:
+    image: postgres:17-alpine
+    container_name: helpernote-postgres-dev
+    environment:
+      POSTGRES_DB: helpernote
+      POSTGRES_USER: helpernote
+      POSTGRES_PASSWORD: helpernote
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.docker/postgres-data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpernote"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - helpernote-network
+
+  # MinIO Object Storage (Development)
+  minio:
+    image: minio/minio:latest
+    container_name: helpernote-minio-dev
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./.docker/minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - helpernote-network
+
+networks:
+  helpernote-network:
+    driver: bridge

@@ -1,0 +1,56 @@
+# Kong Ingress for Helpernote
+# Assumes Kong Gateway is already installed in the cluster
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: helpernote-ingress
+  namespace: helpernote
+  annotations:
+    kubernetes.io/ingress.class: kong
+    konghq.com/strip-path: "false"
+    konghq.com/protocols: "https"
+    # Rate limiting plugin
+    konghq.com/plugins: rate-limiting-helpernote
+spec:
+  ingressClassName: kong
+  rules:
+    # Main domain - Frontend
+    - host: www.helpernote.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+    # API subdomain - Backend
+    - host: api.helpernote.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+  tls:
+    - hosts:
+        - www.helpernote.com
+        - api.helpernote.com
+      secretName: helpernote-tls
+---
+# Kong Rate Limiting Plugin
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limiting-helpernote
+  namespace: helpernote
+config:
+  minute: 200
+  hour: 10000
+  policy: local
+plugin: rate-limiting

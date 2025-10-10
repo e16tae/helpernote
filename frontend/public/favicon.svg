@@ -1,0 +1,10 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle for better visibility -->
+  <circle cx="32" cy="32" r="32" fill="#2563eb"/>
+  
+  <!-- Note shape -->
+  <rect x="16" y="16" width="32" height="32" rx="6" fill="white" opacity="0.95"/>
+  
+  <!-- Checkmark -->
+  <path d="M24 32 L30 38 L42 24" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
