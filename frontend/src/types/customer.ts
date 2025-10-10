@@ -1,6 +1,19 @@
 // Backend uses PascalCase for enum values
 export type CustomerType = 'Employer' | 'Employee' | 'Both';
 
+// Runtime constants for CustomerType (since TypeScript types don't exist at runtime)
+export const CUSTOMER_TYPES = {
+  Employer: 'Employer' as const,
+  Employee: 'Employee' as const,
+  Both: 'Both' as const,
+} as const;
+
+export const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
+  Employer: '고용주',
+  Employee: '근로자',
+  Both: '양쪽',
+};
+
 export interface Customer {
   id: number;
   user_id: number;
@@ -34,6 +47,10 @@ export interface UpdateCustomerRequest {
 
 export interface ListCustomersQuery {
   customer_type?: CustomerType;
+  tag_ids?: string; // Comma-separated tag IDs
+  search?: string;
+  page?: number;
+  pageSize?: number;
   limit?: number;
   offset?: number;
 }

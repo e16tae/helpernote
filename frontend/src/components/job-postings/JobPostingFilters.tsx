@@ -55,11 +55,11 @@ export function JobPostingFilters({ filters, onFiltersChange }: JobPostingFilter
       <div className="w-full md:w-48">
         <label className="text-sm font-medium mb-2 block">정산 상태</label>
         <Select
-          value={filters.settlementStatus || 'all'}
+          value={filters.settlement_status || 'all'}
           onValueChange={(value) =>
             onFiltersChange({
               ...filters,
-              settlementStatus: value === 'all' ? undefined : value as any,
+              settlement_status: value === 'all' ? undefined : value as any,
             })
           }
         >

@@ -46,7 +46,7 @@ const postingStatusLabels: Record<PostingStatus, string> = {
   cancelled: '취소',
 };
 
-const settlementStatusLabels: Record<SettlementStatus, string> = {
+const settlement_statusLabels: Record<SettlementStatus, string> = {
   unsettled: '미정산',
   settled: '정산완료',
 };
@@ -59,7 +59,7 @@ export default function JobPostingsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [postingStatus, setPostingStatus] = useState<PostingStatus | 'ALL'>('ALL');
-  const [settlementStatus, setSettlementStatus] = useState<SettlementStatus | 'ALL'>('ALL');
+  const [settlement_status, setSettlementStatus] = useState<SettlementStatus | 'ALL'>('ALL');
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     posting: JobPosting | null;
@@ -74,7 +74,7 @@ export default function JobPostingsPage() {
 
       const response = await jobPostingApi.listJobPostings({
         status: postingStatus !== 'ALL' ? postingStatus : undefined,
-        settlement_status: settlementStatus !== 'ALL' ? settlementStatus : undefined,
+        settlement_status: settlement_status !== 'ALL' ? settlement_status : undefined,
         limit: 20,
         offset: (page - 1) * 20,
       });
@@ -87,12 +87,12 @@ export default function JobPostingsPage() {
       const customerMap: Record<number, Customer> = {};
 
       await Promise.all(
-        uniqueCustomerIds.map(async (customerId) => {
+        uniqueCustomerIds.map(async (customer_id) => {
           try {
-            const customer = await customerApi.getById(customerId);
-            customerMap[customerId] = customer;
+            const customer = await customerApi.getById(customer_id);
+            customerMap[customer_id] = customer;
           } catch (error) {
-            console.error(`Failed to load customer ${customerId}:`, error);
+            console.error(`Failed to load customer ${customer_id}:`, error);
           }
         })
       );
@@ -112,7 +112,7 @@ export default function JobPostingsPage() {
 
   useEffect(() => {
     loadJobPostings();
-  }, [searchQuery, postingStatus, settlementStatus, page]);
+  }, [searchQuery, postingStatus, settlement_status, page]);
 
   const handleView = (posting: JobPosting) => {
     router.push(`/dashboard/job-postings/${posting.id}`);
@@ -223,7 +223,7 @@ export default function JobPostingsPage() {
                 </SelectContent>
               </Select>
               <Select
-                value={settlementStatus}
+                value={settlement_status}
                 onValueChange={(value) => setSettlementStatus(value as SettlementStatus | 'ALL')}
               >
                 <SelectTrigger className="w-[200px]">
@@ -305,7 +305,7 @@ export default function JobPostingsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant={posting.settlement_status === 'settled' ? 'default' : 'outline'}>
-                            {settlementStatusLabels[posting.settlement_status]}
+                            {settlement_statusLabels[posting.settlement_status]}
                           </Badge>
                         </TableCell>
                         <TableCell>

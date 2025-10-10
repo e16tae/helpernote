@@ -7,8 +7,8 @@ export const jobPostingsApi = {
   getJobPostings: async (filters?: JobPostingFilters, page = 1, pageSize = 10) => {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
-    if (filters?.settlementStatus) params.append('settlementStatus', filters.settlementStatus);
-    if (filters?.isFavorite !== undefined) params.append('isFavorite', String(filters.isFavorite));
+    if (filters?.settlement_status) params.append('settlement_status', filters.settlement_status);
+    if (filters?.is_favorite !== undefined) params.append('is_favorite', String(filters.is_favorite));
     if (filters?.workType) params.append('workType', filters.workType);
     if (filters?.search) params.append('search', filters.search);
     params.append('page', String(page));
@@ -51,7 +51,7 @@ export const jobPostingsApi = {
   },
 
   // Update status
-  updateStatus: async (id: string, status: JobPosting['status']) => {
+  updateStatus: async (id: string, status: JobPosting['posting_status']) => {
     const response = await apiClient.patch<JobPosting>(`/job-postings/${id}/status`, { status });
     return response.data;
   },

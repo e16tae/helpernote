@@ -1,6 +1,21 @@
 export type PostingStatus = 'published' | 'in_progress' | 'closed' | 'cancelled';
 export type SettlementStatus = 'unsettled' | 'settled';
 
+// Runtime constants for PostingStatus
+export const POSTING_STATUS = {
+  published: 'published' as const,
+  in_progress: 'in_progress' as const,
+  closed: 'closed' as const,
+  cancelled: 'cancelled' as const,
+} as const;
+
+export const POSTING_STATUS_LABELS: Record<PostingStatus, string> = {
+  published: '공개',
+  in_progress: '진행중',
+  closed: '마감',
+  cancelled: '취소됨',
+};
+
 // Job Posting (구인 공고)
 export interface JobPosting {
   id: number;
@@ -98,6 +113,8 @@ export interface ListJobPostingsQuery {
   status?: PostingStatus;
   settlement_status?: SettlementStatus;
   is_favorite?: boolean;
+  search?: string;
+  workType?: string;
   limit?: number;
   offset?: number;
 }

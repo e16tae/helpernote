@@ -76,7 +76,7 @@ const postingStatusLabels: Record<PostingStatus, string> = {
   cancelled: '취소',
 };
 
-const settlementStatusLabels: Record<SettlementStatus, string> = {
+const settlement_statusLabels: Record<SettlementStatus, string> = {
   unsettled: '미정산',
   settled: '정산완료',
 };
@@ -422,7 +422,7 @@ export default function EditJobPostingPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(settlementStatusLabels).map(([value, label]) => (
+                        {Object.entries(settlement_statusLabels).map(([value, label]) => (
                           <SelectItem key={value} value={value}>
                             {label}
                           </SelectItem>

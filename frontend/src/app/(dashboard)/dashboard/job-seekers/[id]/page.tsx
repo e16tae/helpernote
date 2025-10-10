@@ -29,7 +29,7 @@ const postingStatusLabels: Record<PostingStatus, string> = {
   cancelled: '취소',
 };
 
-const settlementStatusLabels: Record<SettlementStatus, string> = {
+const settlement_statusLabels: Record<SettlementStatus, string> = {
   unsettled: '미정산',
   settled: '정산완료',
 };
@@ -189,7 +189,7 @@ export default function JobSeekingDetailPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">정산 상태</span>
               <Badge variant={jobSeeking.settlement_status === 'settled' ? 'default' : 'outline'}>
-                {settlementStatusLabels[jobSeeking.settlement_status]}
+                {settlement_statusLabels[jobSeeking.settlement_status]}
               </Badge>
             </div>
 
@@ -244,7 +244,7 @@ export default function JobSeekingDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">정산 상태</p>
               <Badge variant={jobSeeking.settlement_status === 'settled' ? 'default' : 'outline'}>
-                {settlementStatusLabels[jobSeeking.settlement_status]}
+                {settlement_statusLabels[jobSeeking.settlement_status]}
               </Badge>
             </div>
 

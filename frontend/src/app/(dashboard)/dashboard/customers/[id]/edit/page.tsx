@@ -66,7 +66,7 @@ export default function EditCustomerPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
 
-  const customerId = params.id as string;
+  const customer_id = params.id as string;
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
@@ -85,9 +85,9 @@ export default function EditCustomerPage() {
 
         // Load customer and tags in parallel
         const [customerData, tagsResponse, customerTagsResponse] = await Promise.all([
-          customerApi.getById(parseInt(customerId)),
+          customerApi.getById(parseInt(customer_id)),
           apiClient.get('/tags'),
-          apiClient.get(`/customers/${customerId}/tags`),
+          apiClient.get(`/customers/${customer_id}/tags`),
         ]);
 
         setCustomer(customerData);
@@ -114,10 +114,10 @@ export default function EditCustomerPage() {
       }
     };
 
-    if (customerId) {
+    if (customer_id) {
       loadData();
     }
-  }, [customerId, form, toast]);
+  }, [customer_id, form, toast]);
 
   const toggleTag = (tagId: number) => {
     setSelectedTags(prev =>
@@ -136,11 +136,11 @@ export default function EditCustomerPage() {
         address: data.address || undefined,
       };
 
-      await customerApi.update(parseInt(customerId), submitData);
+      await customerApi.update(parseInt(customer_id), submitData);
 
       // Sync tags - attach all selected tags
       try {
-        await apiClient.post(`/customers/${customerId}/tags`, {
+        await apiClient.post(`/customers/${customer_id}/tags`, {
           tag_ids: selectedTags,
         });
       } catch (error) {
@@ -157,7 +157,7 @@ export default function EditCustomerPage() {
         description: '고객 정보가 수정되었습니다.',
       });
 
-      router.push(`/dashboard/customers/${customerId}`);
+      router.push(`/dashboard/customers/${customer_id}`);
     } catch (error) {
       console.error('Failed to update customer:', error);
       toast({
@@ -197,7 +197,7 @@ export default function EditCustomerPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push(`/dashboard/customers/${customerId}`)}
+          onClick={() => router.push(`/dashboard/customers/${customer_id}`)}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           뒤로
@@ -337,7 +337,7 @@ export default function EditCustomerPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push(`/dashboard/customers/${customerId}`)}
+                  onClick={() => router.push(`/dashboard/customers/${customer_id}`)}
                   disabled={isSubmitting}
                 >
                   취소

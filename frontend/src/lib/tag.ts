@@ -49,19 +49,19 @@ export const tagApi = {
   },
 
   // Attach tag to customer
-  attachToCustomer: async (customerId: number, tagId: number): Promise<void> => {
-    await apiClient.post(`/api/customers/${customerId}/tags/${tagId}`);
+  attachToCustomer: async (customer_id: number, tagId: number): Promise<void> => {
+    await apiClient.post(`/api/customers/${customer_id}/tags/${tagId}`);
   },
 
   // Detach tag from customer
-  detachFromCustomer: async (customerId: number, tagId: number): Promise<void> => {
-    await apiClient.delete(`/api/customers/${customerId}/tags/${tagId}`);
+  detachFromCustomer: async (customer_id: number, tagId: number): Promise<void> => {
+    await apiClient.delete(`/api/customers/${customer_id}/tags/${tagId}`);
   },
 
   // List customer tags
-  listCustomerTags: async (customerId: number): Promise<TagsListResponse> => {
+  listCustomerTags: async (customer_id: number): Promise<TagsListResponse> => {
     const response = await apiClient.get<TagsListResponse>(
-      `/api/customers/${customerId}/tags`
+      `/api/customers/${customer_id}/tags`
     );
     return response.data;
   },

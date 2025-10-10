@@ -65,6 +65,8 @@ export interface MatchingsListResponse {
 
 export interface ListMatchingsQuery {
   status?: MatchingStatus;
+  settlement_status?: string;
+  search?: string;
   limit?: number;
   offset?: number;
 }

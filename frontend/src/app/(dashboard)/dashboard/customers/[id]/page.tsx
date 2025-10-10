@@ -24,15 +24,15 @@ interface CustomerMemo {
 }
 
 const customerTypeLabels: Record<CustomerType, string> = {
-  employer: '고용주',
-  employee: '근로자',
-  both: '양쪽',
+  Employer: '고용주',
+  Employee: '근로자',
+  Both: '양쪽',
 };
 
 const customerTypeVariants: Record<CustomerType, 'default' | 'secondary' | 'outline'> = {
-  employer: 'default',
-  employee: 'secondary',
-  both: 'outline',
+  Employer: 'default',
+  Employee: 'secondary',
+  Both: 'outline',
 };
 
 export default function CustomerDetailPage() {
@@ -46,37 +46,37 @@ export default function CustomerDetailPage() {
   const [addingMemo, setAddingMemo] = useState(false);
   const [tags, setTags] = useState<{ id: number; name: string }[]>([]);
 
-  const customerId = params.id as string;
+  const customer_id = params.id as string;
+
+  const loadCustomer = async () => {
+    try {
+      setLoading(true);
+      const data = await customerApi.getById(parseInt(customer_id));
+      setCustomer(data);
+
+      // Load memos and tags
+      await Promise.all([loadMemos(), loadTags()]);
+    } catch (error) {
+      console.error('Failed to load customer:', error);
+      toast({
+        title: '오류',
+        description: '고객 정보를 불러오는데 실패했습니다.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadCustomer = async () => {
-      try {
-        setLoading(true);
-        const data = await customerApi.getById(parseInt(customerId));
-        setCustomer(data);
-
-        // Load memos and tags
-        await Promise.all([loadMemos(), loadTags()]);
-      } catch (error) {
-        console.error('Failed to load customer:', error);
-        toast({
-          title: '오류',
-          description: '고객 정보를 불러오는데 실패했습니다.',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (customerId) {
+    if (customer_id) {
       loadCustomer();
     }
-  }, [customerId, toast]);
+  }, [customer_id, toast]);
 
   const loadTags = async () => {
     try {
-      const response = await apiClient.get(`/api/customers/${customerId}/tags`);
+      const response = await apiClient.get(`/api/customers/${customer_id}/tags`);
       setTags(response.data.tags || []);
     } catch (error) {
       console.error('Failed to load tags:', error);
@@ -85,7 +85,7 @@ export default function CustomerDetailPage() {
 
   const loadMemos = async () => {
     try {
-      const response = await apiClient.get(`/api/customers/${customerId}/memos`);
+      const response = await apiClient.get(`/api/customers/${customer_id}/memos`);
       setMemos(response.data.memos || []);
     } catch (error) {
       console.error('Failed to load memos:', error);
@@ -97,8 +97,8 @@ export default function CustomerDetailPage() {
 
     try {
       setAddingMemo(true);
-      await apiClient.post(`/api/customers/${customerId}/memos`, {
-        customer_id: parseInt(customerId),
+      await apiClient.post(`/api/customers/${customer_id}/memos`, {
+        customer_id: parseInt(customer_id),
         memo_content: newMemo,
       });
       setNewMemo('');
@@ -120,7 +120,7 @@ export default function CustomerDetailPage() {
   };
 
   const handleEdit = () => {
-    router.push(`/dashboard/customers/${customerId}/edit`);
+    router.push(`/dashboard/customers/${customer_id}/edit`);
   };
 
   const handleBack = () => {
@@ -176,7 +176,7 @@ export default function CustomerDetailPage() {
         {/* Profile Photo */}
         <div className="md:col-span-1">
           <ProfilePhotoUpload
-            customerId={parseInt(customerId)}
+            customer_id={parseInt(customer_id)}
             currentPhotoUrl={null}
             customerName={customer.name}
             onPhotoUploaded={() => {

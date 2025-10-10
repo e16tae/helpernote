@@ -15,8 +15,8 @@ export const customersApi = {
   async listCustomers(filters?: CustomerFilters): Promise<CustomerListResponse> {
     const params = new URLSearchParams();
 
-    if (filters?.customerType) {
-      params.append('customerType', filters.customerType);
+    if (filters?.customer_type) {
+      params.append('customer_type', filters.customer_type);
     }
     if (filters?.search) {
       params.append('search', filters.search);
