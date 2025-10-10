@@ -65,16 +65,20 @@ jobs:
       
       - name: Run clippy
         working-directory: ./backend
+        env:
+          SQLX_OFFLINE: true
         run: cargo clippy -- -D warnings
-      
+
       - name: Run tests
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://helpernote:testpassword@localhost:5432/helpernote_test
         run: cargo test --verbose
-      
+
       - name: Build backend
         working-directory: ./backend
+        env:
+          SQLX_OFFLINE: true
         run: cargo build --release
 
   frontend-test:
