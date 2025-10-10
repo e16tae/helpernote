@@ -1,4 +1,6 @@
-use crate::models::matching::{CreateMatchingRequest, Matching, MatchingStatus, UpdateMatchingRequest};
+use crate::models::matching::{
+    CreateMatchingRequest, Matching, MatchingStatus, UpdateMatchingRequest,
+};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 
@@ -40,10 +42,7 @@ pub async fn create_matching(
 }
 
 /// Get matching by ID
-pub async fn get_matching_by_id(
-    pool: &PgPool,
-    matching_id: i64,
-) -> Result<Matching, sqlx::Error> {
+pub async fn get_matching_by_id(pool: &PgPool, matching_id: i64) -> Result<Matching, sqlx::Error> {
     let matching = sqlx::query_as!(
         Matching,
         r#"
@@ -187,10 +186,7 @@ pub async fn update_matching_status(
 }
 
 /// Complete a matching
-pub async fn complete_matching(
-    pool: &PgPool,
-    matching_id: i64,
-) -> Result<Matching, sqlx::Error> {
+pub async fn complete_matching(pool: &PgPool, matching_id: i64) -> Result<Matching, sqlx::Error> {
     let matching = sqlx::query_as!(
         Matching,
         r#"

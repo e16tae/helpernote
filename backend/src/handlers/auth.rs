@@ -1,8 +1,4 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use validator::Validate;
@@ -65,7 +61,10 @@ pub async fn register(
     let password_hash = hash_password(&payload.password).map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Password hashing failed: {}", e))),
+            Json(ErrorResponse::new(format!(
+                "Password hashing failed: {}",
+                e
+            ))),
         )
     })?;
 
@@ -108,7 +107,10 @@ pub async fn register(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse::new(format!("Token generation failed: {}", e))),
+                Json(ErrorResponse::new(format!(
+                    "Token generation failed: {}",
+                    e
+                ))),
             )
         })?;
 
@@ -117,7 +119,10 @@ pub async fn register(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse::new(format!("Token generation failed: {}", e))),
+                Json(ErrorResponse::new(format!(
+                    "Token generation failed: {}",
+                    e
+                ))),
             )
         })?;
 
@@ -175,7 +180,10 @@ pub async fn login(
     let password_valid = verify_password(&payload.password, &user.password_hash).map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Password verification failed: {}", e))),
+            Json(ErrorResponse::new(format!(
+                "Password verification failed: {}",
+                e
+            ))),
         )
     })?;
 
@@ -201,7 +209,10 @@ pub async fn login(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse::new(format!("Token generation failed: {}", e))),
+                Json(ErrorResponse::new(format!(
+                    "Token generation failed: {}",
+                    e
+                ))),
             )
         })?;
 
@@ -210,7 +221,10 @@ pub async fn login(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse::new(format!("Token generation failed: {}", e))),
+                Json(ErrorResponse::new(format!(
+                    "Token generation failed: {}",
+                    e
+                ))),
             )
         })?;
 
@@ -287,7 +301,10 @@ pub async fn refresh_token(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse::new(format!("Token generation failed: {}", e))),
+                Json(ErrorResponse::new(format!(
+                    "Token generation failed: {}",
+                    e
+                ))),
             )
         })?;
 
@@ -296,7 +313,10 @@ pub async fn refresh_token(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse::new(format!("Token generation failed: {}", e))),
+                Json(ErrorResponse::new(format!(
+                    "Token generation failed: {}",
+                    e
+                ))),
             )
         })?;
 
@@ -355,7 +375,10 @@ pub async fn forgot_password(
     let new_password_hash = hash_password(&payload.new_password).map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Password hashing failed: {}", e))),
+            Json(ErrorResponse::new(format!(
+                "Password hashing failed: {}",
+                e
+            ))),
         )
     })?;
 

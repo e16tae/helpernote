@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::config::Config;
 use crate::middleware::auth::AuthUser;
 use crate::models::file::{FileType, UploadFileResponse};
 use crate::repositories::file;
-use crate::config::Config;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
@@ -126,7 +126,10 @@ pub async fn upload_customer_file(
         )
     })?;
 
-    let file_url = format!("{}/{}/{}", config.minio_endpoint, config.minio_bucket, file_path);
+    let file_url = format!(
+        "{}/{}/{}",
+        config.minio_endpoint, config.minio_bucket, file_path
+    );
 
     Ok(Json(UploadFileResponse {
         file_id: file_record.id,
@@ -260,7 +263,10 @@ pub async fn upload_customer_profile_photo(
             )
         })?;
 
-    let file_url = format!("{}/{}/{}", config.minio_endpoint, config.minio_bucket, file_path);
+    let file_url = format!(
+        "{}/{}/{}",
+        config.minio_endpoint, config.minio_bucket, file_path
+    );
 
     Ok(Json(UploadFileResponse {
         file_id: file_record.id,
@@ -368,7 +374,9 @@ pub async fn delete_customer_file(
             )
         })?;
 
-    Ok(Json(serde_json::json!({ "message": "File deleted successfully" })))
+    Ok(Json(
+        serde_json::json!({ "message": "File deleted successfully" }),
+    ))
 }
 
 /// Helper function to upload to MinIO

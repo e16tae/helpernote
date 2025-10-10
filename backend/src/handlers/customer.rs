@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::middleware::auth::AuthUser;
-use crate::models::customer::{CreateCustomerRequest, Customer, CustomerType, UpdateCustomerRequest};
+use crate::models::customer::{
+    CreateCustomerRequest, Customer, CustomerType, UpdateCustomerRequest,
+};
 use crate::repositories::customer;
 
 #[derive(Debug, Deserialize)]
@@ -58,10 +60,7 @@ pub async fn create_customer(
             )
         })?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(CustomerResponse { customer }),
-    ))
+    Ok((StatusCode::CREATED, Json(CustomerResponse { customer })))
 }
 
 /// List customers with optional filters
@@ -191,22 +190,17 @@ pub async fn search_customers(
         ));
     }
 
-    let customers = customer::search_customers(
-        &pool,
-        user.user_id,
-        &params.q,
-        params.limit,
-        params.offset,
-    )
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: format!("고객 검색 실패: {}", e),
-            }),
-        )
-    })?;
+    let customers =
+        customer::search_customers(&pool, user.user_id, &params.q, params.limit, params.offset)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("고객 검색 실패: {}", e),
+                    }),
+                )
+            })?;
 
     let total = customers.len();
 
