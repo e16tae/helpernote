@@ -5,6 +5,7 @@ namespace: helpernote
 
 resources:
   - namespace.yaml
+  - configmap.yaml
   - secrets.yaml
   - postgres-statefulset.yaml
   - minio-deployment.yaml

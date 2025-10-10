@@ -37,14 +37,24 @@ spec:
             - containerPort: 3000
               name: http
           env:
+            # Application Configuration (from ConfigMap)
             - name: NODE_ENV
-              value: "production"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: NODE_ENV
             - name: PORT
-              value: "3000"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: FRONTEND_PORT
             - name: HOSTNAME
               value: "0.0.0.0"
             - name: NEXT_PUBLIC_API_URL
-              value: "https://api.helpernote.com"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: API_URL
           resources:
             requests:
               memory: "256Mi"
