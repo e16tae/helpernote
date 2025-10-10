@@ -51,6 +51,7 @@ export default function TagsPage() {
 
   useEffect(() => {
     loadTags();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTags = async () => {
@@ -503,7 +504,7 @@ export default function TagsPage() {
           <DialogHeader>
             <DialogTitle>태그 삭제</DialogTitle>
             <DialogDescription>
-              정말로 "{deleteDialog.tag?.tag_name}" 태그를 삭제하시겠습니까?
+              정말로 &ldquo;{deleteDialog.tag?.tag_name}&rdquo; 태그를 삭제하시겠습니까?
               이 작업은 되돌릴 수 없습니다.
             </DialogDescription>
           </DialogHeader>
