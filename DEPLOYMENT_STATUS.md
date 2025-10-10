@@ -3,7 +3,7 @@
 ## Latest Deployment
 
 **Date**: 2025-10-11
-**Version**: main-aaf4134
+**Version**: main-f40ad53
 **Status**: 🚀 In Progress
 
 ## Changes Deployed
@@ -18,7 +18,8 @@
 ### Backend Code Quality
 - ✅ Applied rustfmt to all Rust code (16 files formatted)
 - ✅ All backend code passes rustfmt checks
-- ✅ Ready for clippy linting
+- ✅ Added SQLx offline query metadata for CI/CD
+- ✅ Backend now compiles without DATABASE_URL in CI environment
 
 ## Commits
 
@@ -37,6 +38,13 @@
 - `2486e88` - style: apply rustfmt to backend code
   - Formatted 16 backend files with cargo fmt
   - Fixed all rustfmt violations
+
+### Build System Changes
+- `24e7cb2` - build: add SQLx offline query metadata for CI/CD
+  - Generated with cargo sqlx prepare
+  - 83 query metadata files added to .sqlx/ directory
+  - Fixes 83 SQLx compile errors in GitHub Actions
+  - Allows compilation without DATABASE_URL in CI environment
 
 ## GitHub Actions Workflows
 
@@ -60,12 +68,12 @@
 
 ### Backend
 - **Registry**: ghcr.io/e16tae/helpernote-backend
-- **Tag**: main-aaf4134
+- **Tag**: main-f40ad53
 - **Base**: rust:1.83-slim
 
 ### Frontend
 - **Registry**: ghcr.io/e16tae/helpernote-frontend
-- **Tag**: main-aaf4134
+- **Tag**: main-f40ad53
 - **Base**: node:22-alpine
 
 ## Kubernetes Deployment
@@ -192,4 +200,4 @@ argocd app rollback helpernote-production <revision>
 
 ---
 
-Last Updated: 2025-10-11 04:30 KST
+Last Updated: 2025-10-11 05:00 KST

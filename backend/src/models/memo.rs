@@ -1,3 +1,6 @@
+// Allow unused code - these models are used for future features
+#![allow(dead_code)]
+
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 

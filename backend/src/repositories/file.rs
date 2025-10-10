@@ -1,7 +1,11 @@
+// Allow unused code - these functions are used for future features
+#![allow(dead_code)]
+
 use crate::models::file::{CustomerFile, FileType, UserFile};
 use sqlx::PgPool;
 
 /// Create a new customer file record
+#[allow(clippy::too_many_arguments)]
 pub async fn create_customer_file(
     pool: &PgPool,
     customer_id: i64,

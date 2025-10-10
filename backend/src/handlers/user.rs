@@ -78,7 +78,7 @@ pub async fn update_profile(
 ) -> Result<Json<UserProfileResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate fee rates if provided
     if let Some(rate) = payload.default_employer_fee_rate {
-        if rate < 0.0 || rate > 100.0 {
+        if !(0.0..=100.0).contains(&rate) {
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
@@ -89,7 +89,7 @@ pub async fn update_profile(
     }
 
     if let Some(rate) = payload.default_employee_fee_rate {
-        if rate < 0.0 || rate > 100.0 {
+        if !(0.0..=100.0).contains(&rate) {
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
