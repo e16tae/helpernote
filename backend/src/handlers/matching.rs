@@ -19,6 +19,7 @@ pub struct ListMatchingsQuery {
     pub offset: Option<i64>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct UpdateStatusRequest {
     pub matching_status: MatchingStatus,

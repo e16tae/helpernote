@@ -1,3 +1,6 @@
+// Allow uninlined format args - these are clearer with explicit placeholders
+#![allow(clippy::uninlined_format_args)]
+
 use axum::{
     extract::FromRef,
     middleware::from_fn_with_state,

@@ -1,3 +1,6 @@
+// Allow unused code - these functions are used for future features
+#![allow(dead_code)]
+
 use crate::models::matching::{
     CreateMatchingRequest, Matching, MatchingStatus, UpdateMatchingRequest,
 };
@@ -10,8 +13,8 @@ pub async fn create_matching(
     req: CreateMatchingRequest,
 ) -> Result<Matching, sqlx::Error> {
     // Calculate fees
-    let employer_fee = (&req.agreed_salary * &req.employer_fee_rate) / Decimal::from(100);
-    let employee_fee = (&req.agreed_salary * &req.employee_fee_rate) / Decimal::from(100);
+    let employer_fee = (req.agreed_salary * req.employer_fee_rate) / Decimal::from(100);
+    let employee_fee = (req.agreed_salary * req.employee_fee_rate) / Decimal::from(100);
 
     let matching = sqlx::query_as!(
         Matching,
@@ -147,8 +150,8 @@ pub async fn update_matching_status(
     let final_employee_rate = req.employee_fee_rate.unwrap_or(current.employee_fee_rate);
 
     // Recalculate fees if any of the values changed
-    let employer_fee = (&final_salary * &final_employer_rate) / Decimal::from(100);
-    let employee_fee = (&final_salary * &final_employee_rate) / Decimal::from(100);
+    let employer_fee = (final_salary * final_employer_rate) / Decimal::from(100);
+    let employee_fee = (final_salary * final_employee_rate) / Decimal::from(100);
 
     let matching = sqlx::query_as!(
         Matching,

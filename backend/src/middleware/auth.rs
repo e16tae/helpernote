@@ -15,6 +15,7 @@ use crate::services::auth::{AuthService, TokenType};
 #[derive(Clone)]
 pub struct AuthUser {
     pub user_id: i64,
+    #[allow(dead_code)]
     pub username: String,
 }
 

@@ -1,3 +1,6 @@
+// Allow unused code - these functions are used for future features
+#![allow(dead_code)]
+
 use crate::models::memo::{
     CreateCustomerMemoRequest, CreateMatchingMemoRequest, CreateUserMemoRequest, CustomerMemo,
     MatchingMemo, UpdateMemoRequest, UserMemo,

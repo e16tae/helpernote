@@ -1,3 +1,6 @@
+// Allow unused code - these functions are used for future features
+#![allow(dead_code)]
+
 use crate::models::tag::{CreateTagRequest, Tag, UpdateTagRequest};
 use sqlx::PgPool;
 
