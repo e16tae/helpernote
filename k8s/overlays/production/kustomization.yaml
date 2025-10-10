@@ -18,10 +18,10 @@ replicas:
 images:
   - name: ghcr.io/e16tae/helpernote-backend
     newName: ghcr.io/e16tae/helpernote-backend
-    newTag: latest
+    newTag: main-b3c0856ef69c3f3607d287738fa2b994b6be904c
   - name: ghcr.io/e16tae/helpernote-frontend
     newName: ghcr.io/e16tae/helpernote-frontend
-    newTag: latest
+    newTag: main-b3c0856ef69c3f3607d287738fa2b994b6be904c
 
 patchesStrategicMerge:
   - resources-patch.yaml
