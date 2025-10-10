@@ -1,0 +1,48 @@
+# Application Configuration
+# This ConfigMap contains non-sensitive application settings
+# that can be easily changed without rebuilding images
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: helpernote
+data:
+  # Application Identity
+  APP_NAME: "helpernote"
+  APP_ENV: "production"
+
+  # Domain Configuration
+  FRONTEND_DOMAIN: "www.helpernote.com"
+  BACKEND_DOMAIN: "api.helpernote.com"
+  API_URL: "https://api.helpernote.com"
+
+  # Backend Configuration
+  BACKEND_PORT: "8000"
+  RUST_LOG: "info"
+  JWT_EXPIRATION: "3600"  # 1 hour in seconds
+
+  # Frontend Configuration
+  FRONTEND_PORT: "3000"
+  NODE_ENV: "production"
+
+  # MinIO Configuration
+  MINIO_ENDPOINT: "http://minio:9000"
+  MINIO_BUCKET: "helpernote"
+
+  # Database Configuration (non-sensitive)
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "helpernote"
+  DB_USER: "helpernote"
+
+  # Resource Limits
+  BACKEND_MEMORY_REQUEST: "256Mi"
+  BACKEND_MEMORY_LIMIT: "512Mi"
+  BACKEND_CPU_REQUEST: "250m"
+  BACKEND_CPU_LIMIT: "500m"
+
+  FRONTEND_MEMORY_REQUEST: "256Mi"
+  FRONTEND_MEMORY_LIMIT: "512Mi"
+  FRONTEND_CPU_REQUEST: "250m"
+  FRONTEND_CPU_LIMIT: "500m"

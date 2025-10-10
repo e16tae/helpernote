@@ -6,8 +6,13 @@ on:
       - main
 
 env:
+  # Container Registry
   REGISTRY: ghcr.io
   IMAGE_OWNER: ${{ github.repository_owner }}
+
+  # Application Configuration
+  BACKEND_DOMAIN: api.helpernote.com
+  FRONTEND_DOMAIN: www.helpernote.com
 
 jobs:
   build-and-push:
@@ -73,7 +78,7 @@ jobs:
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=https://api.helpernote.com
+            NEXT_PUBLIC_API_URL=https://${{ env.BACKEND_DOMAIN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
