@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO customer_tags (customer_id, tag_id)\n        VALUES ($1, $2)\n        ON CONFLICT (customer_id, tag_id) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b4a5eaac70eee09f08f4c62a1a181468909e671dde20bfc8184d5bbe6e72a38f"
+}

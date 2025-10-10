@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE customer_memos\n        SET deleted_at = CURRENT_TIMESTAMP\n        WHERE id = $1 AND deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "332babcc60f07f1e5a5c96876b346e5e29f07d8da870a5422c8bb3fad9932cd5"
+}
