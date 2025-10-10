@@ -59,7 +59,10 @@ async fn main() {
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/refresh", post(handlers::auth::refresh_token))
-        .route("/api/auth/forgot-password", post(handlers::auth::forgot_password));
+        .route(
+            "/api/auth/forgot-password",
+            post(handlers::auth::forgot_password),
+        );
 
     // Protected routes (require JWT authentication)
     let protected_routes = Router::new()
@@ -69,44 +72,125 @@ async fn main() {
         // Customer routes
         .route("/api/customers", post(handlers::customer::create_customer))
         .route("/api/customers", get(handlers::customer::list_customers))
-        .route("/api/customers/search", get(handlers::customer::search_customers))
+        .route(
+            "/api/customers/search",
+            get(handlers::customer::search_customers),
+        )
         .route("/api/customers/:id", get(handlers::customer::get_customer))
-        .route("/api/customers/:id", put(handlers::customer::update_customer))
-        .route("/api/customers/:id", delete(handlers::customer::delete_customer))
+        .route(
+            "/api/customers/:id",
+            put(handlers::customer::update_customer),
+        )
+        .route(
+            "/api/customers/:id",
+            delete(handlers::customer::delete_customer),
+        )
         // Customer memos
-        .route("/api/customers/:id/memos", post(handlers::memo::create_customer_memo))
-        .route("/api/customers/:id/memos", get(handlers::memo::list_customer_memos))
+        .route(
+            "/api/customers/:id/memos",
+            post(handlers::memo::create_customer_memo),
+        )
+        .route(
+            "/api/customers/:id/memos",
+            get(handlers::memo::list_customer_memos),
+        )
         // Customer tags
-        .route("/api/customers/:id/tags", post(handlers::tag::attach_customer_tags))
-        .route("/api/customers/:id/tags", get(handlers::tag::list_customer_tags))
-        .route("/api/customers/:id/tags/:tag_id", delete(handlers::tag::detach_customer_tag))
+        .route(
+            "/api/customers/:id/tags",
+            post(handlers::tag::attach_customer_tags),
+        )
+        .route(
+            "/api/customers/:id/tags",
+            get(handlers::tag::list_customer_tags),
+        )
+        .route(
+            "/api/customers/:id/tags/:tag_id",
+            delete(handlers::tag::detach_customer_tag),
+        )
         // Customer files
-        .route("/api/customers/:id/files", post(handlers::file::upload_customer_file))
-        .route("/api/customers/:id/files", get(handlers::file::list_customer_files))
-        .route("/api/customers/:id/files/:file_id", delete(handlers::file::delete_customer_file))
-        .route("/api/customers/:id/profile-photo", post(handlers::file::upload_customer_profile_photo))
+        .route(
+            "/api/customers/:id/files",
+            post(handlers::file::upload_customer_file),
+        )
+        .route(
+            "/api/customers/:id/files",
+            get(handlers::file::list_customer_files),
+        )
+        .route(
+            "/api/customers/:id/files/:file_id",
+            delete(handlers::file::delete_customer_file),
+        )
+        .route(
+            "/api/customers/:id/profile-photo",
+            post(handlers::file::upload_customer_profile_photo),
+        )
         // Job posting routes
-        .route("/api/job-postings", post(handlers::job_posting::create_job_posting))
-        .route("/api/job-postings", get(handlers::job_posting::list_job_postings))
-        .route("/api/job-postings/:id", get(handlers::job_posting::get_job_posting))
-        .route("/api/job-postings/:id", put(handlers::job_posting::update_job_posting))
-        .route("/api/job-postings/:id", delete(handlers::job_posting::delete_job_posting))
+        .route(
+            "/api/job-postings",
+            post(handlers::job_posting::create_job_posting),
+        )
+        .route(
+            "/api/job-postings",
+            get(handlers::job_posting::list_job_postings),
+        )
+        .route(
+            "/api/job-postings/:id",
+            get(handlers::job_posting::get_job_posting),
+        )
+        .route(
+            "/api/job-postings/:id",
+            put(handlers::job_posting::update_job_posting),
+        )
+        .route(
+            "/api/job-postings/:id",
+            delete(handlers::job_posting::delete_job_posting),
+        )
         // Job seeking routes
-        .route("/api/job-seekings", post(handlers::job_seeking::create_job_seeking))
-        .route("/api/job-seekings", get(handlers::job_seeking::list_job_seekings))
-        .route("/api/job-seekings/:id", get(handlers::job_seeking::get_job_seeking))
-        .route("/api/job-seekings/:id", put(handlers::job_seeking::update_job_seeking))
-        .route("/api/job-seekings/:id", delete(handlers::job_seeking::delete_job_seeking))
+        .route(
+            "/api/job-seekings",
+            post(handlers::job_seeking::create_job_seeking),
+        )
+        .route(
+            "/api/job-seekings",
+            get(handlers::job_seeking::list_job_seekings),
+        )
+        .route(
+            "/api/job-seekings/:id",
+            get(handlers::job_seeking::get_job_seeking),
+        )
+        .route(
+            "/api/job-seekings/:id",
+            put(handlers::job_seeking::update_job_seeking),
+        )
+        .route(
+            "/api/job-seekings/:id",
+            delete(handlers::job_seeking::delete_job_seeking),
+        )
         // Matching routes
         .route("/api/matchings", post(handlers::matching::create_matching))
         .route("/api/matchings", get(handlers::matching::list_matchings))
         .route("/api/matchings/:id", get(handlers::matching::get_matching))
-        .route("/api/matchings/:id/status", put(handlers::matching::update_matching_status))
-        .route("/api/matchings/:id/complete", post(handlers::matching::complete_matching))
-        .route("/api/matchings/:id/cancel", post(handlers::matching::cancel_matching))
+        .route(
+            "/api/matchings/:id/status",
+            put(handlers::matching::update_matching_status),
+        )
+        .route(
+            "/api/matchings/:id/complete",
+            post(handlers::matching::complete_matching),
+        )
+        .route(
+            "/api/matchings/:id/cancel",
+            post(handlers::matching::cancel_matching),
+        )
         // Matching memos
-        .route("/api/matchings/:id/memos", post(handlers::memo::create_matching_memo))
-        .route("/api/matchings/:id/memos", get(handlers::memo::list_matching_memos))
+        .route(
+            "/api/matchings/:id/memos",
+            post(handlers::memo::create_matching_memo),
+        )
+        .route(
+            "/api/matchings/:id/memos",
+            get(handlers::memo::list_matching_memos),
+        )
         // Tag routes
         .route("/api/tags", post(handlers::tag::create_tag))
         .route("/api/tags", get(handlers::tag::list_tags))

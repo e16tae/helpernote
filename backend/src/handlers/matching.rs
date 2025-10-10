@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::middleware::auth::AuthUser;
-use crate::models::matching::{CreateMatchingRequest, Matching, MatchingStatus, UpdateMatchingRequest};
+use crate::models::matching::{
+    CreateMatchingRequest, Matching, MatchingStatus, UpdateMatchingRequest,
+};
 use crate::repositories::{customer, job_posting, job_seeking, matching};
 
 #[derive(Debug, Deserialize)]
@@ -128,22 +130,23 @@ pub async fn create_matching(
         })?;
 
     // Verify the job seeking posting exists and belongs to the user
-    let job_seeking = job_seeking::get_job_seeking_posting_by_id(&pool, payload.job_seeking_posting_id)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "구직 공고를 찾을 수 없습니다".to_string(),
-                }),
-            ),
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("구직 공고 조회 실패: {}", e),
-                }),
-            ),
-        })?;
+    let job_seeking =
+        job_seeking::get_job_seeking_posting_by_id(&pool, payload.job_seeking_posting_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => (
+                    StatusCode::NOT_FOUND,
+                    Json(ErrorResponse {
+                        error: "구직 공고를 찾을 수 없습니다".to_string(),
+                    }),
+                ),
+                _ => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("구직 공고 조회 실패: {}", e),
+                    }),
+                ),
+            })?;
 
     customer::get_customer_by_id(&pool, job_seeking.customer_id, user.user_id)
         .await

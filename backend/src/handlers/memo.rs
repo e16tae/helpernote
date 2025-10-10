@@ -123,21 +123,17 @@ pub async fn list_customer_memos(
             ),
         })?;
 
-    let memos = memo::list_customer_memos_by_customer(
-        &pool,
-        customer_id,
-        params.limit,
-        params.offset,
-    )
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: format!("메모 목록 조회 실패: {}", e),
-            }),
-        )
-    })?;
+    let memos =
+        memo::list_customer_memos_by_customer(&pool, customer_id, params.limit, params.offset)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("메모 목록 조회 실패: {}", e),
+                    }),
+                )
+            })?;
 
     let total = memos.len();
 
@@ -174,16 +170,17 @@ pub async fn create_matching_memo(
         })?;
 
     // Verify through job posting ownership
-    let job_posting = crate::repositories::job_posting::get_job_posting_by_id(&pool, matching.job_posting_id)
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "구인 공고 조회 실패".to_string(),
-                }),
-            )
-        })?;
+    let job_posting =
+        crate::repositories::job_posting::get_job_posting_by_id(&pool, matching.job_posting_id)
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "구인 공고 조회 실패".to_string(),
+                    }),
+                )
+            })?;
 
     customer::get_customer_by_id(&pool, job_posting.customer_id, user.user_id)
         .await
@@ -246,16 +243,17 @@ pub async fn list_matching_memos(
         })?;
 
     // Verify through job posting ownership
-    let job_posting = crate::repositories::job_posting::get_job_posting_by_id(&pool, matching.job_posting_id)
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "구인 공고 조회 실패".to_string(),
-                }),
-            )
-        })?;
+    let job_posting =
+        crate::repositories::job_posting::get_job_posting_by_id(&pool, matching.job_posting_id)
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "구인 공고 조회 실패".to_string(),
+                    }),
+                )
+            })?;
 
     customer::get_customer_by_id(&pool, job_posting.customer_id, user.user_id)
         .await
@@ -268,21 +266,17 @@ pub async fn list_matching_memos(
             )
         })?;
 
-    let memos = memo::list_matching_memos_by_matching(
-        &pool,
-        matching_id,
-        params.limit,
-        params.offset,
-    )
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: format!("메모 목록 조회 실패: {}", e),
-            }),
-        )
-    })?;
+    let memos =
+        memo::list_matching_memos_by_matching(&pool, matching_id, params.limit, params.offset)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("메모 목록 조회 실패: {}", e),
+                    }),
+                )
+            })?;
 
     let total = memos.len();
 

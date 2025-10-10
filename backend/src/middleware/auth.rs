@@ -44,16 +44,14 @@ pub async fn auth_middleware(
         })?;
 
     // Extract token from "Bearer <token>" format
-    let token = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or_else(|| {
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(AuthErrorResponse {
-                    error: "Invalid authorization header format".to_string(),
-                }),
-            )
-        })?;
+    let token = auth_header.strip_prefix("Bearer ").ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(AuthErrorResponse {
+                error: "Invalid authorization header format".to_string(),
+            }),
+        )
+    })?;
 
     // Get config and validate token
     let config = Config::from_env().map_err(|e| {
@@ -127,7 +125,10 @@ pub mod extract {
     {
         type Rejection = (StatusCode, Json<AuthErrorResponse>);
 
-        async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        async fn from_request_parts(
+            parts: &mut Parts,
+            _state: &S,
+        ) -> Result<Self, Self::Rejection> {
             parts.extensions.get::<AuthUser>().cloned().ok_or_else(|| {
                 (
                     StatusCode::UNAUTHORIZED,

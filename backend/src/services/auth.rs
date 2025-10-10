@@ -15,10 +15,10 @@ pub enum AuthError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,  // Subject (user_id)
+    pub sub: String, // Subject (user_id)
     pub username: String,
-    pub exp: i64,     // Expiration time
-    pub iat: i64,     // Issued at
+    pub exp: i64, // Expiration time
+    pub iat: i64, // Issued at
     pub token_type: TokenType,
 }
 
@@ -62,7 +62,11 @@ impl AuthService {
             .map_err(|_| AuthError::TokenCreationFailed)
     }
 
-    pub fn generate_refresh_token(&self, user_id: i64, username: &str) -> Result<String, AuthError> {
+    pub fn generate_refresh_token(
+        &self,
+        user_id: i64,
+        username: &str,
+    ) -> Result<String, AuthError> {
         let now = Utc::now();
         let exp = now + Duration::seconds(self.refresh_token_expiration);
 
@@ -78,7 +82,11 @@ impl AuthService {
             .map_err(|_| AuthError::TokenCreationFailed)
     }
 
-    pub fn validate_token(&self, token: &str, expected_type: TokenType) -> Result<Claims, AuthError> {
+    pub fn validate_token(
+        &self,
+        token: &str,
+        expected_type: TokenType,
+    ) -> Result<Claims, AuthError> {
         let token_data = decode::<Claims>(token, &self.decoding_key, &Validation::default())
             .map_err(|_| AuthError::InvalidToken)?;
 
@@ -121,7 +129,9 @@ mod tests {
         let auth_service = AuthService::new("test_secret", 3600);
 
         let access_token = auth_service.generate_access_token(1, "testuser").unwrap();
-        let claims = auth_service.validate_token(&access_token, TokenType::Access).unwrap();
+        let claims = auth_service
+            .validate_token(&access_token, TokenType::Access)
+            .unwrap();
 
         assert_eq!(claims.sub, "1");
         assert_eq!(claims.username, "testuser");

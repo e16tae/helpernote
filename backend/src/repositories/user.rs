@@ -32,12 +32,11 @@ impl UserRepository {
         phone: Option<&str>,
     ) -> Result<User, UserRepositoryError> {
         // Check if username already exists
-        let existing: Option<(i64,)> = sqlx::query_as(
-            "SELECT id FROM users WHERE username = $1 AND deleted_at IS NULL",
-        )
-        .bind(username)
-        .fetch_optional(&self.pool)
-        .await?;
+        let existing: Option<(i64,)> =
+            sqlx::query_as("SELECT id FROM users WHERE username = $1 AND deleted_at IS NULL")
+                .bind(username)
+                .fetch_optional(&self.pool)
+                .await?;
 
         if existing.is_some() {
             return Err(UserRepositoryError::UsernameExists);

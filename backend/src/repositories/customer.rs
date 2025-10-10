@@ -1,4 +1,6 @@
-use crate::models::customer::{CreateCustomerRequest, Customer, CustomerType, UpdateCustomerRequest};
+use crate::models::customer::{
+    CreateCustomerRequest, Customer, CustomerType, UpdateCustomerRequest,
+};
 use sqlx::PgPool;
 
 /// Create a new customer

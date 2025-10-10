@@ -172,10 +172,7 @@ pub async fn detach_tag_from_customer(
 }
 
 /// List tags for customer
-pub async fn list_customer_tags(
-    pool: &PgPool,
-    customer_id: i64,
-) -> Result<Vec<Tag>, sqlx::Error> {
+pub async fn list_customer_tags(pool: &PgPool, customer_id: i64) -> Result<Vec<Tag>, sqlx::Error> {
     let tags = sqlx::query_as!(
         Tag,
         r#"

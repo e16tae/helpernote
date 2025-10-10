@@ -1,8 +1,4 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -48,7 +44,7 @@ pub async fn get_profile(
                last_login_at, created_at, updated_at, deleted_at
         FROM users
         WHERE id = $1 AND deleted_at IS NULL
-        "#
+        "#,
     )
     .bind(user.user_id)
     .fetch_one(&pool)
