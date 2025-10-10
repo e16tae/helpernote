@@ -16,7 +16,7 @@ export const customersApi = {
     const params = new URLSearchParams();
 
     if (filters?.customer_type) {
-      params.append('customerType', filters.customer_type);
+      params.append('customer_type', filters.customer_type);
     }
     if (filters?.search) {
       params.append('search', filters.search);

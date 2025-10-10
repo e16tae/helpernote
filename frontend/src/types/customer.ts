@@ -48,6 +48,9 @@ export interface UpdateCustomerRequest {
 export interface ListCustomersQuery {
   customer_type?: CustomerType;
   tag_ids?: string; // Comma-separated tag IDs
+  search?: string;
+  page?: number;
+  pageSize?: number;
   limit?: number;
   offset?: number;
 }
