@@ -1,6 +1,6 @@
 # Build artifacts
 target/
-Cargo.lock
+# Note: Cargo.lock should be included for reproducible builds in applications
 
 # Development files
 .env
