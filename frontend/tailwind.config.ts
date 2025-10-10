@@ -48,12 +48,7 @@ export default {
   				'2': 'hsl(var(--chart-2))',
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
-  				'5': 'hsl(var(--chart-5))',
-  				'1': 'var(--color-chart-1)',
-  				'2': 'var(--color-chart-2)',
-  				'3': 'var(--color-chart-3)',
-  				'4': 'var(--color-chart-4)',
-  				'5': 'var(--color-chart-5)'
+  				'5': 'hsl(var(--chart-5))'
   			},
   			sidebar: {
   				DEFAULT: 'var(--color-sidebar)',

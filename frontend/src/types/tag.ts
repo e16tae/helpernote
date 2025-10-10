@@ -7,6 +7,9 @@ export interface Tag {
   created_at: string;
   updated_at: string;
   deleted_at?: string;
+  // Compatibility aliases
+  name?: string; // Alias for tag_name
+  color?: string; // Alias for tag_color
 }
 
 export interface CreateTagRequest {

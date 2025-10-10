@@ -1,4 +1,5 @@
-export type CustomerType = 'employer' | 'employee' | 'both';
+// Backend uses PascalCase for enum values
+export type CustomerType = 'Employer' | 'Employee' | 'Both';
 
 export interface Customer {
   id: number;
@@ -51,3 +52,7 @@ export interface CustomersListResponse {
   customers: Customer[];
   total: number;
 }
+
+// Type aliases for compatibility
+export type CustomerFilters = ListCustomersQuery;
+export type CustomerListResponse = CustomersListResponse;

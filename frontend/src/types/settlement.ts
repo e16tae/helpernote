@@ -33,4 +33,36 @@ export interface SettlementFilters {
   status?: SettlementStatus;
   posting_type?: PostingType;
   search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+// Type aliases for compatibility
+export type Settlement = SettlementItem;
+
+// Settlement form data
+export interface SettlementFormData {
+  settlement_status: SettlementStatus;
+  settlement_amount?: string;
+  settlement_memo?: string;
+}
+
+// Settlement statistics
+export interface SettlementStats {
+  total_unsettled: number;
+  total_settled: number;
+  total_unsettled_amount: string;
+  total_settled_amount: string;
+  monthly_stats?: {
+    month: string;
+    settled_count: number;
+    settled_amount: string;
+  }[];
+}
+
+// Settlement export data
+export interface SettlementExportData {
+  settlements: SettlementItem[];
+  total_amount: string;
+  export_date: string;
 }
