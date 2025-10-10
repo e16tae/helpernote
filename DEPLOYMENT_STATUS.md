@@ -3,7 +3,7 @@
 ## Latest Deployment
 
 **Date**: 2025-10-11
-**Version**: main-5b31450
+**Version**: main-878037d
 **Status**: 🚀 In Progress
 
 ## Changes Deployed
@@ -24,6 +24,12 @@
 - ✅ Backend passes clippy with `-D warnings` flag
 - ✅ Applied idiomatic Rust patterns (range contains, operator dereferencing)
 - ✅ Added strategic allow attributes for legitimate cases
+
+### CI/CD Infrastructure
+- ✅ Enabled SQLx offline mode in CI workflow (clippy and build steps)
+- ✅ Added .sqlx directory copy to Dockerfile
+- ✅ Ensures CI/CD can build without database connection
+- ✅ Fixed "relation does not exist" errors in GitHub Actions
 
 ## Commits
 
@@ -56,6 +62,11 @@
   - Added allow for dead_code in models and repositories (9 files)
   - Added allow for uninlined_format_args at crate level
   - Fixes all 43+ clippy errors blocking GitHub Actions CI
+- `32517bd` - fix: enable SQLx offline mode in CI/CD pipelines
+  - Added SQLX_OFFLINE=true to clippy and build steps in CI workflow
+  - Added .sqlx directory copy to Dockerfile for offline query validation
+  - Ensures CI/CD can build without database connection
+  - Fixes "relation does not exist" errors in GitHub Actions
 
 ## GitHub Actions Workflows
 
@@ -79,12 +90,12 @@
 
 ### Backend
 - **Registry**: ghcr.io/e16tae/helpernote-backend
-- **Tag**: main-5b31450
+- **Tag**: main-878037d
 - **Base**: rust:1.83-slim
 
 ### Frontend
 - **Registry**: ghcr.io/e16tae/helpernote-frontend
-- **Tag**: main-5b31450
+- **Tag**: main-878037d
 - **Base**: node:22-alpine
 
 ## Kubernetes Deployment
@@ -212,4 +223,4 @@ None - All CI/CD blocking issues resolved:
 
 ---
 
-Last Updated: 2025-10-11 04:15 KST
+Last Updated: 2025-10-11 04:23 KST
