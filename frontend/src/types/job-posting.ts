@@ -109,3 +109,9 @@ export interface ListJobSeekingsQuery {
   limit?: number;
   offset?: number;
 }
+
+// Type aliases for compatibility
+export type JobSeeking = JobSeekingPosting;
+export type JobSeekingFormData = CreateJobSeekingPostingRequest;
+export type JobPostingFormData = CreateJobPostingRequest;
+export type JobPostingFilters = ListJobPostingsQuery;

@@ -68,3 +68,24 @@ export interface ListMatchingsQuery {
   limit?: number;
   offset?: number;
 }
+
+// Type aliases for compatibility
+export type MatchingFormData = CreateMatchingRequest;
+export type MatchingFilters = ListMatchingsQuery;
+
+// Fee calculation interface
+export interface FeeCalculation {
+  employer_fee: string;
+  employee_fee: string;
+  total_fee: string;
+}
+
+// Timeline event for matching history
+export interface MatchingTimelineEvent {
+  id: number;
+  matching_id: number;
+  event_type: 'created' | 'updated' | 'cancelled' | 'completed';
+  description: string;
+  created_at: string;
+  created_by?: number;
+}
