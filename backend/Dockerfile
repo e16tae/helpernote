@@ -24,10 +24,10 @@ RUN rm -rf src
 # Copy actual source code
 COPY src ./src
 COPY migrations ./migrations
+COPY .sqlx ./.sqlx
 
 # Set SQLx to offline mode to allow building without database connection
-# Note: SQLx queries will be validated at runtime instead of compile-time
-# To enable compile-time verification, run: cargo sqlx prepare
+# SQLx query metadata in .sqlx directory enables compile-time verification
 ENV SQLX_OFFLINE=true
 
 # Build application (touch to force rebuild)
