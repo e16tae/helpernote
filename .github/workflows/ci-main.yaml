@@ -1,16 +1,13 @@
-name: CI - Develop Branch
+name: CI - Main Branch
 
 on:
-  push:
-    branches:
-      - develop
   pull_request:
     branches:
-      - develop
+      - main
 
-# Allow concurrent CI runs for different commits, but cancel outdated runs
+# Allow concurrent CI runs for different PRs, but cancel outdated runs
 concurrency:
-  group: ci-develop-${{ github.ref }}
+  group: ci-main-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -20,7 +17,7 @@ jobs:
   backend-test:
     name: Backend Tests
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:17-alpine
@@ -36,11 +33,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Rust toolchain with caching
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -49,11 +46,11 @@ jobs:
           # Built-in caching - more efficient than manual cache actions
           cache: true
           cache-workspaces: backend
-      
+
       - name: Run rustfmt check
         working-directory: ./backend
         run: cargo fmt -- --check
-      
+
       - name: Run clippy
         working-directory: ./backend
         env:
@@ -76,43 +73,41 @@ jobs:
   frontend-test:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-      
+
       - name: Install dependencies
         working-directory: ./frontend
         run: npm ci
-      
+
       - name: Run linter
         working-directory: ./frontend
         run: npm run lint
-      
+
       - name: Run type check
         working-directory: ./frontend
         run: npx tsc --noEmit
-      
-      - name: Build frontend
+
+      - name: Build frontend (production mode)
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8000
+          # Use production backend domain for main branch builds
+          NEXT_PUBLIC_API_URL: https://api.helpernote.com
         run: npm run build
 
   docker-build-test:
     name: Docker Build Test
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-test]
-    # Only run Docker build test on PRs or when explicitly requested
-    # Saves ~15 minutes on regular push commits
-    if: github.event_name == 'pull_request' || contains(github.event.head_commit.message, '[docker]')
 
     steps:
       - name: Checkout code
@@ -127,7 +122,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: false
-          tags: helpernote-backend:dev-${{ github.sha }}
+          tags: helpernote-backend:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -137,8 +132,8 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: false
-          tags: helpernote-frontend:dev-${{ github.sha }}
+          tags: helpernote-frontend:pr-${{ github.event.pull_request.number }}
           build-args: |
-            NEXT_PUBLIC_API_URL=http://localhost:8000
+            NEXT_PUBLIC_API_URL=https://api.helpernote.com
           cache-from: type=gha
           cache-to: type=gha,mode=max
