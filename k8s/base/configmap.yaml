@@ -12,9 +12,9 @@ data:
   APP_ENV: "production"
 
   # Domain Configuration
-  FRONTEND_DOMAIN: "www.helpernote.com"
-  BACKEND_DOMAIN: "api.helpernote.com"
-  API_URL: "https://api.helpernote.com"
+  FRONTEND_DOMAIN: "www.helpernote.my"
+  BACKEND_DOMAIN: "api.helpernote.my"
+  API_URL: "https://api.helpernote.my"
 
   # Backend Configuration
   BACKEND_PORT: "8000"

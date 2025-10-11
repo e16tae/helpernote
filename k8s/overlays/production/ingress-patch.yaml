@@ -1,5 +1,4 @@
 # Production-specific ingress configuration
-# TLS/SSL is already configured - no additional cert-manager needed
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -11,9 +10,14 @@ metadata:
     # Enable rate limiting
     konghq.com/plugins: rate-limiting-helpernote
 spec:
+  tls:
+    - hosts:
+        - www.helpernote.my
+        - api.helpernote.my
+      secretName: helpernote-wildcard-tls
   rules:
     # Main domain - Frontend
-    - host: www.helpernote.com
+    - host: www.helpernote.my
       http:
         paths:
           - path: /
@@ -24,7 +28,7 @@ spec:
                 port:
                   number: 3000
     # API subdomain - Backend
-    - host: api.helpernote.com
+    - host: api.helpernote.my
       http:
         paths:
           - path: /
