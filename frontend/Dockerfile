@@ -1,7 +1,7 @@
 # ============================================
 # Stage 1: Base image
 # ============================================
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 
 # Install dependencies only when needed
 RUN apk add --no-cache libc6-compat curl
