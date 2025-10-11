@@ -1,7 +1,7 @@
 # ============================================
 # Stage 1: Build application
 # ============================================
-FROM rust:1.83-slim-bookworm AS builder
+FROM rust:1.90-slim-bookworm AS builder
 
 WORKDIR /app
 
