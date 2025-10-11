@@ -17,8 +17,8 @@ env:
   IMAGE_OWNER: ${{ github.repository_owner }}
 
   # Application Configuration
-  BACKEND_DOMAIN: api.helpernote.com
-  FRONTEND_DOMAIN: www.helpernote.com
+  BACKEND_DOMAIN: api.helpernote.my
+  FRONTEND_DOMAIN: www.helpernote.my
 
 jobs:
   build-and-push:
@@ -27,7 +27,7 @@ jobs:
     # Production environment protection with manual approval
     environment:
       name: production
-      url: https://www.helpernote.com
+      url: https://www.helpernote.my
     permissions:
       contents: read
       packages: write

@@ -101,7 +101,7 @@ jobs:
         working-directory: ./frontend
         env:
           # Use production backend domain for main branch builds
-          NEXT_PUBLIC_API_URL: https://api.helpernote.com
+          NEXT_PUBLIC_API_URL: https://api.helpernote.my
         run: npm run build
 
   docker-build-test:
