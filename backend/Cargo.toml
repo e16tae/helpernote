@@ -42,7 +42,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["serde", "v4"] }
 
 # Object storage (MinIO)
-rust-s3 = "0.35"
+rust-s3 = "0.37"
 
 # Validation
 validator = { version = "0.20", features = ["derive"] }
