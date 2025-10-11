@@ -1,4 +1,5 @@
 # Production resource limits (higher than base)
+# Note: Use base deployment names - namePrefix is applied after patching
 apiVersion: apps/v1
 kind: Deployment
 metadata:
