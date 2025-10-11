@@ -26,11 +26,11 @@ data:
   NODE_ENV: "production"
 
   # MinIO Configuration
-  MINIO_ENDPOINT: "http://minio:9000"
+  MINIO_ENDPOINT: "http://prod-minio:9000"
   MINIO_BUCKET: "helpernote"
 
   # Database Configuration (non-sensitive)
-  DB_HOST: "postgres"
+  DB_HOST: "prod-postgres"
   DB_PORT: "5432"
   DB_NAME: "helpernote"
   DB_USER: "helpernote"
