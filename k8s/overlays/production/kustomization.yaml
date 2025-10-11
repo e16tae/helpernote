@@ -31,3 +31,4 @@ images:
 patchesStrategicMerge:
   - resources-patch.yaml
   - ingress-patch.yaml
+  - imagepullsecrets-patch.yaml
