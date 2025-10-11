@@ -24,13 +24,20 @@ jobs:
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
+    # Production environment protection with manual approval
+    environment:
+      name: production
+      url: https://www.helpernote.com
     permissions:
       contents: read
       packages: write
-    
+      security-events: write  # For security scanning
+
     outputs:
       backend_tag: ${{ steps.meta-backend.outputs.tags }}
       frontend_tag: ${{ steps.meta-frontend.outputs.tags }}
+      backend_image: ${{ steps.meta-backend.outputs.json }}
+      frontend_image: ${{ steps.meta-frontend.outputs.json }}
     
     steps:
       - name: Checkout code
@@ -53,7 +60,11 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/helpernote-backend
           tags: |
             type=sha,prefix={{branch}}-
-            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=production,enable={{is_default_branch}}
+          flavor: |
+            latest=false
       
       - name: Build and push backend image
         uses: docker/build-push-action@v5
@@ -73,7 +84,11 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/helpernote-frontend
           tags: |
             type=sha,prefix={{branch}}-
-            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=production,enable={{is_default_branch}}
+          flavor: |
+            latest=false
       
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -88,16 +103,57 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      security-events: write
+
+    steps:
+      - name: Run Trivy scanner - Backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/helpernote-backend:main-${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-backend.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results - Backend
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-backend.sarif'
+          category: 'backend'
+
+      - name: Run Trivy scanner - Frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/helpernote-frontend:main-${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-frontend.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results - Frontend
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-frontend.sarif'
+          category: 'frontend'
+
   update-manifests:
     name: Update K8s Manifests
     runs-on: ubuntu-latest
-    needs: build-and-push
-    
+    needs: [build-and-push, security-scan]
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use PAT for pushing to protected branches and triggering workflows
+          # Create at: Settings > Developer settings > Personal access tokens
+          # Permissions needed: Contents (write), Workflows (write)
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
       
       - name: Update image tags in Kustomization
         run: |
@@ -118,31 +174,195 @@ jobs:
     name: Trigger ArgoCD Sync
     runs-on: ubuntu-latest
     needs: update-manifests
-    
+
     steps:
-      - name: Trigger ArgoCD Sync
+      - name: Install ArgoCD CLI
         run: |
-          echo "ArgoCD will automatically detect the manifest changes and sync"
-          echo "Image tags updated to: main-${{ github.sha }}"
-          echo ""
-          echo "To manually sync, run:"
-          echo "  kubectl apply -f argocd/helpernote-production.yaml"
-          echo "Or use ArgoCD CLI/UI to sync the application"
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Trigger ArgoCD Application Sync
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+        run: |
+          if [ -z "$ARGOCD_SERVER" ] || [ -z "$ARGOCD_AUTH_TOKEN" ]; then
+            echo "⚠️  ArgoCD credentials not configured. Skipping automatic sync."
+            echo "📝 Please configure ARGOCD_SERVER and ARGOCD_TOKEN secrets."
+            echo "📋 Image tags updated to: main-${{ github.sha }}"
+            echo ""
+            echo "To manually sync:"
+            echo "  argocd app sync helpernote-production"
+            echo "  or visit ArgoCD UI"
+            exit 0
+          fi
+
+          echo "🚀 Triggering ArgoCD sync for helpernote-production..."
+          argocd app sync helpernote-production \
+            --server "$ARGOCD_SERVER" \
+            --auth-token "$ARGOCD_AUTH_TOKEN" \
+            --prune \
+            --timeout 300 || {
+              echo "❌ ArgoCD sync failed. Please check ArgoCD manually."
+              exit 1
+            }
+
+          echo "✅ ArgoCD sync initiated successfully"
+
+      - name: Wait for ArgoCD Sync Completion
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+        run: |
+          if [ -z "$ARGOCD_SERVER" ] || [ -z "$ARGOCD_AUTH_TOKEN" ]; then
+            exit 0
+          fi
+
+          echo "⏳ Waiting for ArgoCD sync to complete and application to be healthy..."
+          argocd app wait helpernote-production \
+            --server "$ARGOCD_SERVER" \
+            --auth-token "$ARGOCD_AUTH_TOKEN" \
+            --health \
+            --timeout 600 || {
+              echo "❌ Deployment health check timeout. Check ArgoCD for details."
+              exit 1
+            }
+
+          echo "✅ Application is healthy and synced"
+
+  verify-deployment:
+    name: Verify Deployment Health
+    runs-on: ubuntu-latest
+    needs: trigger-argocd-sync
+
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: Health Check - Backend API
+        run: |
+          echo "🔍 Checking backend health..."
+          for i in {1..10}; do
+            if curl -f -s -o /dev/null -w "%{http_code}" https://${{ env.BACKEND_DOMAIN }}/health | grep -q "200"; then
+              echo "✅ Backend health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "⏳ Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Backend health check failed after 10 attempts"
+          exit 1
+
+      - name: Health Check - Frontend
+        run: |
+          echo "🔍 Checking frontend health..."
+          for i in {1..10}; do
+            HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" https://${{ env.FRONTEND_DOMAIN }})
+            if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 304 ]; then
+              echo "✅ Frontend health check passed (attempt $i, HTTP $HTTP_CODE)"
+              exit 0
+            fi
+            echo "⏳ Attempt $i failed (HTTP $HTTP_CODE), retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Frontend health check failed after 10 attempts"
+          exit 1
+
+      - name: Smoke Test - API Endpoints
+        run: |
+          echo "🧪 Running smoke tests..."
+
+          # Test backend root
+          if ! curl -f -s https://${{ env.BACKEND_DOMAIN }}/ | grep -q "Helpernote API"; then
+            echo "❌ Backend root endpoint failed"
+            exit 1
+          fi
+          echo "✅ Backend root endpoint OK"
+
+          echo "✅ All smoke tests passed"
 
   notify:
     name: Deployment Notification
     runs-on: ubuntu-latest
-    needs: [build-and-push, update-manifests]
+    needs: [build-and-push, security-scan, update-manifests, trigger-argocd-sync, verify-deployment]
     if: always()
-    
+
     steps:
-      - name: Deployment Status
+      - name: Determine deployment status
+        id: status
         run: |
-          if [ "${{ needs.build-and-push.result }}" == "success" ] && [ "${{ needs.update-manifests.result }}" == "success" ]; then
-            echo "✅ Deployment successful!"
-            echo "Backend: ${{ needs.build-and-push.outputs.backend_tag }}"
-            echo "Frontend: ${{ needs.build-and-push.outputs.frontend_tag }}"
+          if [ "${{ needs.build-and-push.result }}" == "success" ] && \
+             [ "${{ needs.security-scan.result }}" == "success" ] && \
+             [ "${{ needs.update-manifests.result }}" == "success" ] && \
+             [ "${{ needs.trigger-argocd-sync.result }}" == "success" ] && \
+             [ "${{ needs.verify-deployment.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "icon=✅" >> $GITHUB_OUTPUT
           else
-            echo "❌ Deployment failed!"
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "icon=❌" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack notification
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "${{ steps.status.outputs.icon }} Production Deployment ${{ steps.status.outputs.status }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ steps.status.outputs.icon }} Production Deployment"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Status:*\n${{ steps.status.outputs.status }}"},
+                    {"type": "mrkdwn", "text": "*Environment:*\nProduction"},
+                    {"type": "mrkdwn", "text": "*Commit:*\n<${{ github.event.head_commit.url }}|${{ github.sha }}>"},
+                    {"type": "mrkdwn", "text": "*Author:*\n${{ github.actor }}"}
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Message:* ${{ github.event.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*URLs:*\n• Frontend: https://${{ env.FRONTEND_DOMAIN }}\n• Backend: https://${{ env.BACKEND_DOMAIN }}/health"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Console notification
+        run: |
+          echo "════════════════════════════════════════════════════════"
+          echo "${{ steps.status.outputs.icon }} Deployment Status: ${{ steps.status.outputs.status }}"
+          echo "════════════════════════════════════════════════════════"
+          echo "Build & Push:        ${{ needs.build-and-push.result }}"
+          echo "Security Scan:       ${{ needs.security-scan.result }}"
+          echo "Update Manifests:    ${{ needs.update-manifests.result }}"
+          echo "ArgoCD Sync:         ${{ needs.trigger-argocd-sync.result }}"
+          echo "Health Verification: ${{ needs.verify-deployment.result }}"
+          echo "════════════════════════════════════════════════════════"
+          echo "Backend Tag:  ${{ needs.build-and-push.outputs.backend_tag }}"
+          echo "Frontend Tag: ${{ needs.build-and-push.outputs.frontend_tag }}"
+          echo "════════════════════════════════════════════════════════"
+
+          if [ "${{ steps.status.outputs.status }}" != "success" ]; then
+            echo "❌ Deployment had failures. Check the logs above."
             exit 1
           fi
