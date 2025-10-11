@@ -1,13 +1,16 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-bases:
+# Use 'resources' instead of deprecated 'bases'
+resources:
   - ../../base
 
 namePrefix: prod-
 
-commonLabels:
-  environment: production
+# Use labels instead of commonLabels to avoid patch conflicts
+labels:
+  - pairs:
+      environment: production
 
 replicas:
   - name: backend
@@ -23,6 +26,8 @@ images:
     newName: ghcr.io/e16tae/helpernote-frontend
     newTag: latest
 
+# patchesStrategicMerge is deprecated but still widely used and supported
+# It handles multi-document YAML files better than the new patches format
 patchesStrategicMerge:
   - resources-patch.yaml
   - ingress-patch.yaml
