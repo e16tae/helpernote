@@ -21,13 +21,14 @@ replicas:
 images:
   - name: ghcr.io/e16tae/helpernote-backend
     newName: ghcr.io/e16tae/helpernote-backend
-    newTag: main-b3c0856ef69c3f3607d287738fa2b994b6be904c
+    newTag: main-463ac21c41abfbe6837dffcd454214b218dca12a
   - name: ghcr.io/e16tae/helpernote-frontend
     newName: ghcr.io/e16tae/helpernote-frontend
-    newTag: main-b3c0856ef69c3f3607d287738fa2b994b6be904c
+    newTag: main-463ac21c41abfbe6837dffcd454214b218dca12a
 
 # patchesStrategicMerge is deprecated but still widely used and supported
 # It handles multi-document YAML files better than the new patches format
 patchesStrategicMerge:
   - resources-patch.yaml
   - ingress-patch.yaml
+  - imagepullsecrets-patch.yaml
