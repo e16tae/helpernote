@@ -5,6 +5,12 @@ on:
     branches:
       - main
 
+# Prevent concurrent deployments to the same environment
+# When a new deployment starts, cancel any in-progress deployment
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
+
 env:
   # Container Registry
   REGISTRY: ghcr.io
@@ -96,15 +102,16 @@ jobs:
       - name: Update image tags in Kustomization
         run: |
           cd k8s/overlays/production
-          
+
           # Update backend image tag
           sed -i "s|newTag:.*|newTag: main-${{ github.sha }}|g" kustomization.yaml
-          
+
           # Commit and push changes
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add kustomization.yaml
-          git commit -m "chore: update production image tags to ${{ github.sha }}" || echo "No changes to commit"
+          # Use [skip ci] to prevent triggering another workflow run
+          git commit -m "chore: update production image tags to ${{ github.sha }} [skip ci]" || echo "No changes to commit"
           git push
 
   trigger-argocd-sync:

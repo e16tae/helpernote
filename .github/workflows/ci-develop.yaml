@@ -8,6 +8,11 @@ on:
     branches:
       - develop
 
+# Allow concurrent CI runs for different commits, but cancel outdated runs
+concurrency:
+  group: ci-develop-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
