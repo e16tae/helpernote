@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MemoForm } from "./MemoForm";
 import { MemoItem } from "./MemoItem";
 import { BaseMemo, CreateMemoRequest, UpdateMemoRequest } from "@/types/memo";
@@ -23,11 +23,7 @@ export function MemoList({ entityType, entityId, endpoint }: MemoListProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchMemos();
-  }, [endpoint]);
-
-  const fetchMemos = async () => {
+  const fetchMemos = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -43,7 +39,11 @@ export function MemoList({ entityType, entityId, endpoint }: MemoListProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [endpoint, entityType, entityId]);
+
+  useEffect(() => {
+    fetchMemos();
+  }, [fetchMemos]);
 
   const handleAdd = async (content: string) => {
     try {
