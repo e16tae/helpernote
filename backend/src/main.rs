@@ -225,7 +225,7 @@ async fn main() {
         // Production: restrictive CORS
         CorsLayer::new()
             .allow_origin(
-                ["https://helpernote.com", "https://www.helpernote.com"]
+                ["https://helpernote.my", "https://www.helpernote.my"]
                     .map(|s| s.parse().unwrap()),
             )
             .allow_methods([
