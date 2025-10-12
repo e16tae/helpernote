@@ -14,6 +14,14 @@ export const customerApi = {
     return response.data.customers || [];
   },
 
+  // Search customers
+  search: async (query: string): Promise<Customer[]> => {
+    const response = await apiClient.get("/api/customers/search", {
+      params: { q: query },
+    });
+    return response.data.customers || [];
+  },
+
   // Get customer by ID
   getById: async (customerId: number): Promise<Customer> => {
     const response = await apiClient.get(`/api/customers/${customerId}`);
@@ -53,9 +61,27 @@ export const customerApi = {
   ): Promise<CustomerMemo> => {
     const response = await apiClient.post(
       `/api/customers/${customerId}/memos`,
-      { memo_text: memoText }
+      { customer_id: customerId, memo_content: memoText }
     );
-    return response.data;
+    return response.data.memo;
+  },
+
+  // Update customer memo
+  updateMemo: async (
+    customerId: number,
+    memoId: number,
+    memoText: string
+  ): Promise<CustomerMemo> => {
+    const response = await apiClient.put(
+      `/api/customers/${customerId}/memos/${memoId}`,
+      { memo_content: memoText }
+    );
+    return response.data.memo;
+  },
+
+  // Delete customer memo
+  deleteMemo: async (customerId: number, memoId: number): Promise<void> => {
+    await apiClient.delete(`/api/customers/${customerId}/memos/${memoId}`);
   },
 
   // Get customer files

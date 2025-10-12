@@ -70,6 +70,10 @@ async fn main() {
     let public_routes = Router::new()
         .route("/", get(|| async { "Helpernote API" }))
         .route("/health", get(handlers::health::health_check))
+        .route(
+            "/api/security-questions",
+            get(handlers::security_question::list_security_questions),
+        )
         .merge(auth_routes);
 
     // Protected routes (require JWT authentication)
@@ -77,6 +81,14 @@ async fn main() {
         // User profile routes
         .route("/api/profile", get(handlers::user::get_profile))
         .route("/api/profile", put(handlers::user::update_profile))
+        // User memos
+        .route("/api/users/memos", post(handlers::user_memo::create_user_memo))
+        .route("/api/users/memos", get(handlers::user_memo::list_user_memos))
+        .route("/api/users/memos/{id}", put(handlers::user_memo::update_user_memo))
+        .route("/api/users/memos/{id}", delete(handlers::user_memo::delete_user_memo))
+        // User files
+        .route("/api/users/files", get(handlers::user_file::list_user_files))
+        .route("/api/users/files/{id}", delete(handlers::user_file::delete_user_file))
         // Customer routes
         .route("/api/customers", post(handlers::customer::create_customer))
         .route("/api/customers", get(handlers::customer::list_customers))
@@ -101,6 +113,14 @@ async fn main() {
         .route(
             "/api/customers/{id}/memos",
             get(handlers::memo::list_customer_memos),
+        )
+        .route(
+            "/api/customers/{id}/memos/{memo_id}",
+            put(handlers::memo::update_customer_memo),
+        )
+        .route(
+            "/api/customers/{id}/memos/{memo_id}",
+            delete(handlers::memo::delete_customer_memo),
         )
         // Customer tags
         .route(
@@ -153,6 +173,14 @@ async fn main() {
             "/api/job-postings/{id}",
             delete(handlers::job_posting::delete_job_posting),
         )
+        .route(
+            "/api/job-postings/{id}/settlement",
+            put(handlers::settlement::update_job_posting_settlement),
+        )
+        .route(
+            "/api/job-postings/{id}/favorite",
+            post(handlers::job_posting::toggle_favorite),
+        )
         // Job seeking routes
         .route(
             "/api/job-seekings",
@@ -173,6 +201,10 @@ async fn main() {
         .route(
             "/api/job-seekings/{id}",
             delete(handlers::job_seeking::delete_job_seeking),
+        )
+        .route(
+            "/api/job-seekings/{id}/settlement",
+            put(handlers::settlement::update_job_seeking_settlement),
         )
         // Matching routes
         .route("/api/matchings", post(handlers::matching::create_matching))
@@ -198,6 +230,14 @@ async fn main() {
         .route(
             "/api/matchings/{id}/memos",
             get(handlers::memo::list_matching_memos),
+        )
+        .route(
+            "/api/matchings/{id}/memos/{memo_id}",
+            put(handlers::memo::update_matching_memo),
+        )
+        .route(
+            "/api/matchings/{id}/memos/{memo_id}",
+            delete(handlers::memo::delete_matching_memo),
         )
         // Tag routes
         .route("/api/tags", post(handlers::tag::create_tag))

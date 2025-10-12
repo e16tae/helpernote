@@ -35,7 +35,7 @@ export const fileApi = {
     formData.append("file", file);
 
     const response = await apiClient.post(
-      `/api/customers/${customerId}/files/profile`,
+      `/api/customers/${customerId}/profile-photo`,
       formData,
       {
         headers: {

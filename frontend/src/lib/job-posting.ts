@@ -40,24 +40,6 @@ export const jobPostingApi = {
   delete: async (postingId: number): Promise<void> => {
     await apiClient.delete(`/api/job-postings/${postingId}`);
   },
-
-  // Get job posting memos
-  getMemos: async (postingId: number): Promise<JobPostingMemo[]> => {
-    const response = await apiClient.get(`/api/job-postings/${postingId}/memos`);
-    return response.data;
-  },
-
-  // Create job posting memo
-  createMemo: async (
-    postingId: number,
-    memoText: string
-  ): Promise<JobPostingMemo> => {
-    const response = await apiClient.post(
-      `/api/job-postings/${postingId}/memos`,
-      { memo_text: memoText }
-    );
-    return response.data;
-  },
 };
 
 export const jobSeekingApi = {
@@ -91,23 +73,5 @@ export const jobSeekingApi = {
   // Delete job seeking posting
   delete: async (seekingId: number): Promise<void> => {
     await apiClient.delete(`/api/job-seekings/${seekingId}`);
-  },
-
-  // Get job seeking memos
-  getMemos: async (seekingId: number): Promise<JobSeekingMemo[]> => {
-    const response = await apiClient.get(`/api/job-seekings/${seekingId}/memos`);
-    return response.data;
-  },
-
-  // Create job seeking memo
-  createMemo: async (
-    seekingId: number,
-    memoText: string
-  ): Promise<JobSeekingMemo> => {
-    const response = await apiClient.post(
-      `/api/job-seekings/${seekingId}/memos`,
-      { memo_text: memoText }
-    );
-    return response.data;
   },
 };

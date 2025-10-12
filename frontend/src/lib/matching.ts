@@ -53,34 +53,40 @@ export const matchingApi = {
   ): Promise<MatchingMemo> => {
     const response = await apiClient.post(
       `/api/matchings/${matchingId}/memos`,
-      { memo_text: memoText }
+      { matching_id: matchingId, memo_content: memoText }
     );
-    return response.data;
+    return response.data.memo;
   },
 
-  // Get settlement memos
-  getSettlementMemos: async (matchingId: number): Promise<SettlementMemo[]> => {
-    const response = await apiClient.get(
-      `/api/matchings/${matchingId}/settlement-memos`
-    );
-    return response.data;
-  },
-
-  // Create settlement memo
-  createSettlementMemo: async (
+  // Update matching memo
+  updateMemo: async (
     matchingId: number,
-    settlementType: "employer" | "employee",
-    settlementAmount: number,
+    memoId: number,
     memoText: string
-  ): Promise<SettlementMemo> => {
-    const response = await apiClient.post(
-      `/api/matchings/${matchingId}/settlement-memos`,
-      {
-        settlement_type: settlementType,
-        settlement_amount: settlementAmount,
-        memo_text: memoText,
-      }
+  ): Promise<MatchingMemo> => {
+    const response = await apiClient.put(
+      `/api/matchings/${matchingId}/memos/${memoId}`,
+      { memo_content: memoText }
     );
-    return response.data;
+    return response.data.memo;
+  },
+
+  // Delete matching memo
+  deleteMemo: async (matchingId: number, memoId: number): Promise<void> => {
+    await apiClient.delete(`/api/matchings/${matchingId}/memos/${memoId}`);
+  },
+
+  // Complete matching
+  complete: async (matchingId: number): Promise<Matching> => {
+    const response = await apiClient.post(`/api/matchings/${matchingId}/complete`);
+    return response.data.matching;
+  },
+
+  // Cancel matching
+  cancel: async (matchingId: number, reason: string): Promise<Matching> => {
+    const response = await apiClient.post(`/api/matchings/${matchingId}/cancel`, {
+      cancellation_reason: reason,
+    });
+    return response.data.matching;
   },
 };
