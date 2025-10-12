@@ -34,8 +34,8 @@ jobs:
       security-events: write  # For security scanning
 
     outputs:
-      backend_tag: ${{ steps.meta-backend.outputs.tags }}
-      frontend_tag: ${{ steps.meta-frontend.outputs.tags }}
+      backend_tag: ${{ steps.get-tags.outputs.backend_tag }}
+      frontend_tag: ${{ steps.get-tags.outputs.frontend_tag }}
       backend_image: ${{ steps.meta-backend.outputs.json }}
       frontend_image: ${{ steps.meta-frontend.outputs.json }}
     
@@ -102,6 +102,16 @@ jobs:
             NEXT_PUBLIC_API_URL=https://${{ env.BACKEND_DOMAIN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Extract first tag for scanning
+        id: get-tags
+        run: |
+          BACKEND_TAG=$(echo "${{ steps.meta-backend.outputs.tags }}" | head -n1)
+          FRONTEND_TAG=$(echo "${{ steps.meta-frontend.outputs.tags }}" | head -n1)
+          echo "backend_tag=$BACKEND_TAG" >> $GITHUB_OUTPUT
+          echo "frontend_tag=$FRONTEND_TAG" >> $GITHUB_OUTPUT
+          echo "Backend tag for scanning: $BACKEND_TAG"
+          echo "Frontend tag for scanning: $FRONTEND_TAG"
 
   security-scan:
     name: Security Vulnerability Scan
