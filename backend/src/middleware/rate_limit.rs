@@ -5,10 +5,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
-use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct RateLimiter {
@@ -87,10 +87,7 @@ impl IntoResponse for RateLimitError {
 
 /// Rate limiting middleware
 /// Default: 100 requests per minute per IP
-pub async fn rate_limit_middleware(
-    req: Request,
-    next: Next,
-) -> Result<Response, RateLimitError> {
+pub async fn rate_limit_middleware(req: Request, next: Next) -> Result<Response, RateLimitError> {
     let limiter = RateLimiter::new(100, Duration::from_secs(60));
 
     // Extract IP from request

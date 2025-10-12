@@ -224,7 +224,10 @@ async fn main() {
     } else {
         // Production: restrictive CORS
         CorsLayer::new()
-            .allow_origin(["https://helpernote.com", "https://www.helpernote.com"].map(|s| s.parse().unwrap()))
+            .allow_origin(
+                ["https://helpernote.com", "https://www.helpernote.com"]
+                    .map(|s| s.parse().unwrap()),
+            )
             .allow_methods([
                 axum::http::Method::GET,
                 axum::http::Method::POST,
