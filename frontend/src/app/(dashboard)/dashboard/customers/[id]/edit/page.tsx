@@ -19,6 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FileList } from "@/components/file/FileList";
+import { FileUpload } from "@/components/file/FileUpload";
 
 export default function EditCustomerPage() {
   const router = useRouter();
@@ -29,6 +31,7 @@ export default function EditCustomerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fileRefreshTrigger, setFileRefreshTrigger] = useState(0);
 
   const [formData, setFormData] = useState<UpdateCustomerRequest>({
     customer_type: "Employer",
@@ -40,6 +43,7 @@ export default function EditCustomerPage() {
 
   useEffect(() => {
     loadCustomer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
 
   const loadCustomer = async () => {
@@ -110,6 +114,10 @@ export default function EditCustomerPage() {
       ...prev,
       [field]: value || null,
     }));
+  };
+
+  const handleFileUploadSuccess = () => {
+    setFileRefreshTrigger((prev) => prev + 1);
   };
 
   if (loading) {
@@ -275,6 +283,20 @@ export default function EditCustomerPage() {
           </div>
         </div>
       </form>
+
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">파일 관리</h2>
+          <FileUpload
+            customerId={customerId}
+            onSuccess={handleFileUploadSuccess}
+          />
+        </div>
+        <FileList
+          customerId={customerId}
+          refreshTrigger={fileRefreshTrigger}
+        />
+      </div>
     </div>
   );
 }

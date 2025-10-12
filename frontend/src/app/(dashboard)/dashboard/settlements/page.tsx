@@ -42,6 +42,7 @@ export default function SettlementsPage() {
 
   useEffect(() => {
     fetchSettlements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSettlements = async () => {
@@ -425,8 +426,8 @@ function SettlementTable({ settlements, formatCurrency }: SettlementTableProps) 
                 </TableCell>
                 <TableCell className="text-right">
                   <Link href={`/dashboard/matchings/${settlement.matching.id}`}>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="mr-2 h-4 w-4" />
+                    <Button variant="ghost" size="sm" aria-label={`매칭 ${settlement.matching.id} 상세 보기`}>
+                      <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
                       상세
                     </Button>
                   </Link>

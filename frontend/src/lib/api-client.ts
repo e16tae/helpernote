@@ -1,6 +1,8 @@
 import axios, { AxiosInstance, AxiosError } from "axios";
+import { env } from "./env";
+import { logger } from "./logger";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = env.NEXT_PUBLIC_API_URL;
 
 /**
  * API 에러 인터페이스
@@ -100,8 +102,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    const endpoint = error.config?.url || 'unknown';
+    const status = error.response?.status;
+
     // 401 Unauthorized - 토큰 만료 또는 유효하지 않음
-    if (error.response?.status === 401) {
+    if (status === 401) {
+      logger.warn('Unauthorized request - redirecting to login', { endpoint });
       localStorage.removeItem("token");
 
       // 로그인 페이지가 아닌 경우에만 리다이렉트
@@ -111,13 +117,28 @@ apiClient.interceptors.response.use(
     }
 
     // 403 Forbidden - 권한 없음
-    if (error.response?.status === 403) {
-      console.warn("Access forbidden:", error.response.data);
+    if (status === 403) {
+      logger.warn('Access forbidden', {
+        endpoint,
+        data: error.response?.data,
+      });
     }
 
     // 500번대 서버 오류 로깅
-    if (error.response?.status && error.response.status >= 500) {
-      console.error("Server error:", error.response);
+    if (status && status >= 500) {
+      logger.apiError(endpoint, error, {
+        status,
+        data: error.response?.data,
+      });
+    }
+
+    // 기타 에러 로깅
+    if (status && status >= 400 && status < 500) {
+      logger.debug('Client error', {
+        endpoint,
+        status,
+        data: error.response?.data,
+      });
     }
 
     return Promise.reject(error);

@@ -77,8 +77,9 @@ function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             )}
+            aria-current={isActive ? "page" : undefined}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-5 w-5" aria-hidden="true" />
             <span>{item.title}</span>
           </Link>
         );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface LogoProps {
   className?: string;
@@ -11,7 +11,7 @@ const sizeClasses = {
   lg: 'h-10',
 };
 
-export function Logo({ className = '', size = 'md' }: LogoProps) {
+function LogoComponent({ className = '', size = 'md' }: LogoProps) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <svg
@@ -30,3 +30,6 @@ export function Logo({ className = '', size = 'md' }: LogoProps) {
     </div>
   );
 }
+
+// React.memo를 사용하여 props가 변하지 않으면 재렌더링 방지
+export const Logo = memo(LogoComponent);

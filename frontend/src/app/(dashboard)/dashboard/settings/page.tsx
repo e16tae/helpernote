@@ -5,10 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { useTheme } from "next-themes";
-import { Save, User as UserIcon, DollarSign, Palette } from "lucide-react";
+import { Save, User as UserIcon, DollarSign } from "lucide-react";
 import { apiClient, getErrorMessage } from "@/lib/api-client";
 import { User, UpdateUserProfileRequest } from "@/types/user";
 import { useToast } from "@/hooks/use-toast";
@@ -16,9 +13,7 @@ import { toNumber } from "@/lib/utils/currency";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
-  const [isDarkMode, setIsDarkMode] = useState(theme === "dark");
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
@@ -29,6 +24,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async () => {
@@ -82,11 +78,6 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleThemeToggle = (checked: boolean) => {
-    setIsDarkMode(checked);
-    setTheme(checked ? "dark" : "light");
   };
 
   const calculateFeeAmount = (salary: number, rate: number) => {
@@ -153,14 +144,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="profile">프로필</TabsTrigger>
-          <TabsTrigger value="appearance">테마</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile">
-          <form onSubmit={handleProfileSubmit} className="space-y-6">
+      <form onSubmit={handleProfileSubmit} className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -277,68 +261,13 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={loading}>
-                <Save className="mr-2 h-4 w-4" />
-                {loading ? "저장 중..." : "저장"}
-              </Button>
-            </div>
-          </form>
-        </TabsContent>
-
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Palette className="h-5 w-5 text-purple-500" />
-                <CardTitle>테마 설정</CardTitle>
-              </div>
-              <CardDescription>
-                애플리케이션의 외관을 설정합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="dark-mode">다크 모드</Label>
-                    <p className="text-sm text-muted-foreground">
-                      어두운 배경색을 사용합니다
-                    </p>
-                  </div>
-                  <Switch
-                    id="dark-mode"
-                    checked={isDarkMode}
-                    onCheckedChange={handleThemeToggle}
-                  />
-                </div>
-
-                <div className="rounded-lg border p-4">
-                  <h4 className="text-sm font-medium mb-4">미리보기</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded bg-primary" />
-                      <span className="text-sm">Primary</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded bg-secondary" />
-                      <span className="text-sm">Secondary</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded bg-muted" />
-                      <span className="text-sm">Muted</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded bg-accent" />
-                      <span className="text-sm">Accent</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={loading}>
+            <Save className="mr-2 h-4 w-4" />
+            {loading ? "저장 중..." : "저장"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

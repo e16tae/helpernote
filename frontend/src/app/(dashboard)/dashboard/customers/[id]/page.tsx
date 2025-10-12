@@ -12,6 +12,9 @@ import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfilePhotoUpload } from "@/components/file/ProfilePhotoUpload";
+import { FileList } from "@/components/file/FileList";
+import { FileUpload } from "@/components/file/FileUpload";
 
 export default function CustomerDetailPage() {
   const router = useRouter();
@@ -24,9 +27,11 @@ export default function CustomerDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+  const [fileRefreshTrigger, setFileRefreshTrigger] = useState(0);
 
   useEffect(() => {
     loadCustomer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
 
   const loadCustomer = async () => {
@@ -106,6 +111,10 @@ export default function CustomerDetailPage() {
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString("ko-KR");
+  };
+
+  const handleFileUploadSuccess = () => {
+    setFileRefreshTrigger((prev) => prev + 1);
   };
 
   if (loading) {
@@ -200,7 +209,7 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>기본 정보</CardTitle>
@@ -238,6 +247,20 @@ export default function CustomerDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>프로필 사진</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProfilePhotoUpload
+              customerId={customerId}
+              customerName={customer.name}
+              currentPhotoPath={null}
+              onSuccess={handleFileUploadSuccess}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -263,6 +286,20 @@ export default function CustomerDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">파일 관리</h2>
+          <FileUpload
+            customerId={customerId}
+            onSuccess={handleFileUploadSuccess}
+          />
+        </div>
+        <FileList
+          customerId={customerId}
+          refreshTrigger={fileRefreshTrigger}
+        />
+      </div>
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}
