@@ -45,6 +45,7 @@ export default function EditJobPostingPage() {
   useEffect(() => {
     fetchCustomers();
     fetchJobPosting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchCustomers = async () => {

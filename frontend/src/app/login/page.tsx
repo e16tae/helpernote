@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,33 +12,50 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { apiClient, getErrorMessage } from "@/lib/api-client";
 import { Logo } from "@/components/logo";
 
+// Zod 스키마 정의
+const loginSchema = z.object({
+  username: z
+    .string()
+    .min(1, "사용자명을 입력하세요")
+    .min(3, "사용자명은 최소 3자 이상이어야 합니다")
+    .max(50, "사용자명은 최대 50자까지 가능합니다"),
+  password: z
+    .string()
+    .min(1, "비밀번호를 입력하세요")
+    .min(8, "비밀번호는 최소 8자 이상이어야 합니다"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
 
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      const response = await apiClient.post("/api/auth/login", {
-        username,
-        password,
-      });
-
+      const response = await apiClient.post("/api/auth/login", data);
       const { access_token } = response.data;
       localStorage.setItem("token", access_token);
       router.push("/dashboard");
     } catch (err: any) {
       console.error("Login failed:", err);
       const errorMessage = getErrorMessage(err);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+      setError("root", {
+        type: "manual",
+        message: errorMessage,
+      });
     }
   };
 
@@ -52,11 +71,11 @@ export default function LoginPage() {
             계정에 로그인하세요
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
-            {error && (
+            {errors.root && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
+                {errors.root.message}
               </div>
             )}
             <div className="space-y-2">
@@ -65,10 +84,12 @@ export default function LoginPage() {
                 id="username"
                 type="text"
                 placeholder="사용자명을 입력하세요"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
+                {...register("username")}
+                aria-invalid={errors.username ? "true" : "false"}
               />
+              {errors.username && (
+                <p className="text-sm text-destructive">{errors.username.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">비밀번호</Label>
@@ -76,15 +97,17 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="비밀번호를 입력하세요"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...register("password")}
+                aria-invalid={errors.password ? "true" : "false"}
               />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password.message}</p>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "로그인 중..." : "로그인"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "로그인 중..." : "로그인"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               계정이 없으신가요?{" "}

@@ -7,14 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -29,6 +21,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/use-pagination";
 import { useCustomers, useDeleteCustomer } from "@/hooks/queries/use-customers";
+import { ResponsiveDataList, Column } from "@/components/ui/responsive-data-list";
+import type { Customer } from "@/types/customer";
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -127,6 +121,93 @@ export default function CustomersPage() {
     return new Date(dateString).toLocaleDateString("ko-KR");
   };
 
+  const columns: Column<Customer>[] = [
+    {
+      key: "name",
+      header: "이름",
+      mobileLabel: "이름",
+      cell: (customer) => (
+        <span className="font-medium">{customer.name}</span>
+      ),
+    },
+    {
+      key: "type",
+      header: "유형",
+      mobileLabel: "유형",
+      cell: (customer) => (
+        <Badge variant={getTypeBadgeVariant(customer.customer_type)}>
+          {getTypeLabel(customer.customer_type)}
+        </Badge>
+      ),
+    },
+    {
+      key: "birth_date",
+      header: "생년월일",
+      mobileLabel: "생년월일",
+      cell: (customer) => formatDate(customer.birth_date),
+    },
+    {
+      key: "phone",
+      header: "연락처",
+      mobileLabel: "연락처",
+      cell: (customer) => customer.phone,
+    },
+    {
+      key: "address",
+      header: "주소",
+      mobileLabel: "주소",
+      cell: (customer) => (
+        <span className="max-w-[200px] truncate block">
+          {customer.address || "-"}
+        </span>
+      ),
+      hideOnMobile: true,
+    },
+    {
+      key: "created_at",
+      header: "등록일",
+      mobileLabel: "등록일",
+      cell: (customer) => formatDate(customer.created_at),
+      hideOnMobile: true,
+    },
+    {
+      key: "actions",
+      header: "작업",
+      mobileLabel: "작업",
+      className: "text-right",
+      cell: (customer) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
+            aria-label="고객 상세보기"
+          >
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() =>
+              router.push(`/dashboard/customers/${customer.id}/edit`)
+            }
+            aria-label="고객 수정"
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(customer.id)}
+            aria-label="고객 삭제"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex-1 space-y-6 p-6 md:p-8">
       <div className="flex items-center justify-between">
@@ -201,83 +282,12 @@ export default function CustomersPage() {
           </Card>
         </div>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>이름</TableHead>
-                <TableHead>유형</TableHead>
-                <TableHead>생년월일</TableHead>
-                <TableHead>연락처</TableHead>
-                <TableHead>주소</TableHead>
-                <TableHead>등록일</TableHead>
-                <TableHead className="text-right">작업</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedCustomers.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="h-64 text-center text-muted-foreground"
-                  >
-                    고객이 없습니다.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">
-                      {customer.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getTypeBadgeVariant(customer.customer_type)}>
-                        {getTypeLabel(customer.customer_type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(customer.birth_date)}</TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {customer.address || "-"}
-                    </TableCell>
-                    <TableCell>{formatDate(customer.created_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            router.push(`/dashboard/customers/${customer.id}`)
-                          }
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            router.push(
-                              `/dashboard/customers/${customer.id}/edit`
-                            )
-                          }
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(customer.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <ResponsiveDataList
+          data={paginatedCustomers}
+          columns={columns}
+          keyExtractor={(customer) => customer.id.toString()}
+          emptyMessage="고객이 없습니다."
+        />
       )}
 
       <div className="flex items-center justify-between">

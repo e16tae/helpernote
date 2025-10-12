@@ -36,3 +36,6 @@ logs/
 
 # Postgres data
 .docker/postgres-data/
+
+# Archived documentation
+.archived-docs/

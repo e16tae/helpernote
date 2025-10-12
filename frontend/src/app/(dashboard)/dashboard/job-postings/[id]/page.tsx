@@ -41,6 +41,7 @@ export default function JobPostingDetailPage() {
 
   useEffect(() => {
     fetchJobPosting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchJobPosting = async () => {

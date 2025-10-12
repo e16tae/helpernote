@@ -33,6 +33,7 @@ export default function EditMatchingPage() {
 
   useEffect(() => {
     fetchMatching();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchMatching = async () => {
