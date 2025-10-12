@@ -123,7 +123,7 @@ jobs:
       - name: Run Trivy scanner - Backend
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/helpernote-backend:main-${{ github.sha }}
+          image-ref: ${{ needs.build-and-push.outputs.backend_tag }}
           format: 'sarif'
           output: 'trivy-backend.sarif'
           severity: 'CRITICAL,HIGH'
@@ -137,7 +137,7 @@ jobs:
       - name: Run Trivy scanner - Frontend
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/helpernote-frontend:main-${{ github.sha }}
+          image-ref: ${{ needs.build-and-push.outputs.frontend_tag }}
           format: 'sarif'
           output: 'trivy-frontend.sarif'
           severity: 'CRITICAL,HIGH'
@@ -163,20 +163,24 @@ jobs:
           # Create at: Settings > Developer settings > Personal access tokens
           # Permissions needed: Contents (write), Workflows (write)
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-      
+
+      - name: Generate short SHA
+        id: short-sha
+        run: echo "sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
       - name: Update image tags in Kustomization
         run: |
           cd k8s/overlays/production
 
           # Update backend image tag
-          sed -i "s|newTag:.*|newTag: main-${{ github.sha }}|g" kustomization.yaml
+          sed -i "s|newTag:.*|newTag: main-${{ steps.short-sha.outputs.sha }}|g" kustomization.yaml
 
           # Commit and push changes
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add kustomization.yaml
           # Use [skip ci] to prevent triggering another workflow run
-          git commit -m "chore: update production image tags to ${{ github.sha }} [skip ci]" || echo "No changes to commit"
+          git commit -m "chore: update production image tags to main-${{ steps.short-sha.outputs.sha }} [skip ci]" || echo "No changes to commit"
           git push
 
   trigger-argocd-sync:

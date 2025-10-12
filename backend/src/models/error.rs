@@ -70,18 +70,13 @@ impl IntoResponse for AppError {
                 StatusCode::UNAUTHORIZED,
                 ErrorResponse::new("UNAUTHORIZED", msg),
             ),
-            AppError::Forbidden(msg) => (
-                StatusCode::FORBIDDEN,
-                ErrorResponse::new("FORBIDDEN", msg),
-            ),
-            AppError::NotFound(msg) => (
-                StatusCode::NOT_FOUND,
-                ErrorResponse::new("NOT_FOUND", msg),
-            ),
-            AppError::Conflict(msg) => (
-                StatusCode::CONFLICT,
-                ErrorResponse::new("CONFLICT", msg),
-            ),
+            AppError::Forbidden(msg) => {
+                (StatusCode::FORBIDDEN, ErrorResponse::new("FORBIDDEN", msg))
+            }
+            AppError::NotFound(msg) => {
+                (StatusCode::NOT_FOUND, ErrorResponse::new("NOT_FOUND", msg))
+            }
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, ErrorResponse::new("CONFLICT", msg)),
             AppError::UnprocessableEntity(msg) => (
                 StatusCode::UNPROCESSABLE_ENTITY,
                 ErrorResponse::new("UNPROCESSABLE_ENTITY", msg),
@@ -144,11 +139,8 @@ mod tests {
             "reason": "invalid format"
         });
 
-        let error = ErrorResponse::with_details(
-            "VALIDATION_ERROR",
-            "Invalid input",
-            details.clone(),
-        );
+        let error =
+            ErrorResponse::with_details("VALIDATION_ERROR", "Invalid input", details.clone());
 
         assert_eq!(error.error.code, "VALIDATION_ERROR");
         assert_eq!(error.error.message, "Invalid input");
