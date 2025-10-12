@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileQuestion, Home } from "lucide-react";
+import { FileX, Home } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -9,7 +9,7 @@ export default function NotFound() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <FileQuestion className="h-16 w-16 text-muted-foreground" />
+            <FileX className="h-16 w-16 text-muted-foreground" />
           </div>
           <CardTitle className="text-4xl">404</CardTitle>
           <CardDescription className="text-lg">
