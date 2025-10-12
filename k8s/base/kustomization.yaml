@@ -12,6 +12,7 @@ resources:
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - ingress.yaml
+  - apex-redirect-ingress.yaml
 
 commonLabels:
   app.kubernetes.io/name: helpernote
