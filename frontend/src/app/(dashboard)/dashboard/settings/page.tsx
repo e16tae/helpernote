@@ -1,352 +1,344 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2, User, DollarSign, Phone } from 'lucide-react';
-import apiClient from '@/lib/api';
-
-interface UserProfile {
-  id: number;
-  username: string;
-  phone: string | null;
-  default_employer_fee_rate: string;
-  default_employee_fee_rate: string;
-  created_at: string;
-}
-
-const settingsSchema = z.object({
-  phone: z.string()
-    .regex(/^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/, '올바른 전화번호 형식이 아닙니다 (예: 010-1234-5678)')
-    .optional()
-    .or(z.literal('')),
-  default_employer_fee_rate: z.string()
-    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, '수수료율은 0 이상이어야 합니다')
-    .refine((val) => Number(val) <= 100, '수수료율은 100 이하여야 합니다'),
-  default_employee_fee_rate: z.string()
-    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, '수수료율은 0 이상이어야 합니다')
-    .refine((val) => Number(val) <= 100, '수수료율은 100 이하여야 합니다'),
-});
-
-type SettingsFormData = z.infer<typeof settingsSchema>;
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { useTheme } from "next-themes";
+import { Save, User as UserIcon, DollarSign, Palette } from "lucide-react";
+import { apiClient, getErrorMessage } from "@/lib/api-client";
+import { User, UpdateUserProfileRequest } from "@/types/user";
+import { useToast } from "@/hooks/use-toast";
+import { toNumber } from "@/lib/utils/currency";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage() {
-  const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(theme === "dark");
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
-  const form = useForm<SettingsFormData>({
-    resolver: zodResolver(settingsSchema),
-    defaultValues: {
-      phone: '',
-      default_employer_fee_rate: '0',
-      default_employee_fee_rate: '0',
-    },
-  });
+  // Profile form state
+  const [phone, setPhone] = useState("");
+  const [defaultEmployerFeeRate, setDefaultEmployerFeeRate] = useState("");
+  const [defaultEmployeeFeeRate, setDefaultEmployeeFeeRate] = useState("");
 
   useEffect(() => {
-    loadProfile();
+    fetchProfile();
   }, []);
 
-  const loadProfile = async () => {
+  const fetchProfile = async () => {
     try {
-      setLoading(true);
-      const response = await apiClient.get('/api/profile');
-      const userProfile = response.data.user;
-      setProfile(userProfile);
+      const response = await apiClient.get("/api/profile");
+      const userData = response.data.user;
+      setUser(userData);
 
-      // Update form with profile data
-      form.reset({
-        phone: userProfile.phone || '',
-        default_employer_fee_rate: userProfile.default_employer_fee_rate,
-        default_employee_fee_rate: userProfile.default_employee_fee_rate,
+      // Set form data
+      setPhone(userData.phone || "");
+      setDefaultEmployerFeeRate(userData.default_employer_fee_rate);
+      setDefaultEmployeeFeeRate(userData.default_employee_fee_rate);
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+      const errorMessage = getErrorMessage(error);
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: errorMessage,
+      });
+    }
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const payload: UpdateUserProfileRequest = {
+        phone: phone || null,
+        default_employer_fee_rate: parseFloat(defaultEmployerFeeRate),
+        default_employee_fee_rate: parseFloat(defaultEmployeeFeeRate),
+      };
+
+      const response = await apiClient.put("/api/profile", payload);
+      const updatedUser = response.data.user;
+      setUser(updatedUser);
+
+      toast({
+        title: "성공",
+        description: "프로필이 업데이트되었습니다.",
       });
     } catch (error) {
-      console.error('Failed to load profile:', error);
+      console.error("Failed to update profile:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
-        title: '오류',
-        description: '프로필을 불러오는데 실패했습니다.',
-        variant: 'destructive',
+        variant: "destructive",
+        title: "오류",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const onSubmit = async (data: SettingsFormData) => {
-    try {
-      setIsSubmitting(true);
-
-      const updateData: {
-        phone?: string | null;
-        default_employer_fee_rate?: number;
-        default_employee_fee_rate?: number;
-      } = {};
-
-      // Only include fields that have changed
-      if (data.phone !== profile?.phone) {
-        updateData.phone = data.phone || null;
-      }
-
-      if (data.default_employer_fee_rate !== profile?.default_employer_fee_rate) {
-        updateData.default_employer_fee_rate = parseFloat(data.default_employer_fee_rate);
-      }
-
-      if (data.default_employee_fee_rate !== profile?.default_employee_fee_rate) {
-        updateData.default_employee_fee_rate = parseFloat(data.default_employee_fee_rate);
-      }
-
-      await apiClient.put('/api/profile', updateData);
-
-      toast({
-        title: '성공',
-        description: '설정이 저장되었습니다.',
-      });
-
-      // Reload profile to get updated data
-      await loadProfile();
-    } catch (error) {
-      console.error('Failed to update settings:', error);
-      toast({
-        title: '오류',
-        description: '설정 저장에 실패했습니다.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleThemeToggle = (checked: boolean) => {
+    setIsDarkMode(checked);
+    setTheme(checked ? "dark" : "light");
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const calculateFeeAmount = (salary: number, rate: number) => {
+    return (salary * rate) / 100;
+  };
 
-  if (!profile) {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "KRW",
+    }).format(amount);
+  };
+
+  const employerFee = calculateFeeAmount(5000000, toNumber(defaultEmployerFeeRate));
+  const employeeFee = calculateFeeAmount(5000000, toNumber(defaultEmployeeFeeRate));
+  const totalFee = employerFee + employeeFee;
+
+  if (!user) {
     return (
       <div className="space-y-6">
-        <div className="rounded-lg border bg-card p-8 text-center">
-          <p className="text-muted-foreground">프로필을 찾을 수 없습니다.</p>
+        <div>
+          <Skeleton className="h-9 w-32 mb-2" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <Skeleton key={i} className="h-10 w-32" />
+          ))}
+        </div>
+
+        <div className="grid gap-6">
+          {[1, 2].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-96" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-24" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">계정 설정</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">설정</h1>
         <p className="text-muted-foreground">
-          프로필 정보와 기본 수수료율을 관리합니다
+          계정 정보 및 기본 설정을 관리합니다
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Account Information */}
-        <Card className="border-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              계정 정보
-            </CardTitle>
-            <CardDescription>
-              로그인 정보 및 계정 생성일
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium">사용자 이름</p>
-              <p className="text-sm text-muted-foreground">{profile.username}</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm font-medium">계정 ID</p>
-              <p className="text-sm text-muted-foreground">{profile.id}</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm font-medium">가입일</p>
-              <p className="text-sm text-muted-foreground">
-                {new Date(profile.created_at).toLocaleDateString('ko-KR')}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="profile">프로필</TabsTrigger>
+          <TabsTrigger value="appearance">테마</TabsTrigger>
+        </TabsList>
 
-        {/* Profile Settings Form */}
-        <Card className="border-2">
-          <CardHeader>
-            <CardTitle>프로필 설정</CardTitle>
-            <CardDescription>
-              연락처 정보를 수정합니다
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        전화번호
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="010-1234-5678" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex gap-4">
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        저장 중...
-                      </>
-                    ) : (
-                      '저장'
-                    )}
-                  </Button>
+        <TabsContent value="profile">
+          <form onSubmit={handleProfileSubmit} className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <UserIcon className="h-5 w-5 text-blue-500" />
+                  <CardTitle>프로필 정보</CardTitle>
                 </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
+                <CardDescription>
+                  계정의 기본 정보를 관리합니다
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">사용자명</Label>
+                  <Input
+                    id="username"
+                    value={user.username}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    사용자명은 변경할 수 없습니다
+                  </p>
+                </div>
 
-      {/* Fee Settings */}
-      <Card className="border-2">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            기본 수수료율 설정
-          </CardTitle>
-          <CardDescription>
-            새로운 공고를 생성할 때 기본으로 적용될 수수료율을 설정합니다
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="default_employer_fee_rate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>구인자 기본 수수료율 (%)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" placeholder="10.00" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        구인 공고를 생성할 때 기본으로 적용될 수수료율입니다.
-                        구인자가 사용자에게 지불합니다.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="phone">연락처</Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="010-1234-5678"
+                  />
+                </div>
 
-                <FormField
-                  control={form.control}
-                  name="default_employee_fee_rate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>구직자 기본 수수료율 (%)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" placeholder="5.00" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        구직 공고를 생성할 때 기본으로 적용될 수수료율입니다.
-                        구직자가 사용자에게 지불합니다.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label>계정 생성일</Label>
+                  <Input
+                    value={new Date(user.created_at).toLocaleString("ko-KR")}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-              <div className="flex gap-4">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      저장 중...
-                    </>
-                  ) : (
-                    '저장'
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => form.reset()}
-                  disabled={isSubmitting}
-                >
-                  초기화
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                  <CardTitle>기본 수수료율 설정</CardTitle>
+                </div>
+                <CardDescription>
+                  새로운 매칭에 적용될 기본 수수료율을 설정합니다
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="default_employer_fee_rate">
+                      구인자 기본 수수료율 (%) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="default_employer_fee_rate"
+                      type="number"
+                      step="0.1"
+                      value={defaultEmployerFeeRate}
+                      onChange={(e) => setDefaultEmployerFeeRate(e.target.value)}
+                      required
+                      min="0"
+                      max="100"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      구인자에게 부과되는 기본 수수료율입니다
+                    </p>
+                  </div>
 
-      {/* Info Card */}
-      <Card className="border-2 border-primary/20 bg-primary/5">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <DollarSign className="h-5 w-5 text-primary" />
+                  <div className="space-y-2">
+                    <Label htmlFor="default_employee_fee_rate">
+                      구직자 기본 수수료율 (%) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="default_employee_fee_rate"
+                      type="number"
+                      step="0.1"
+                      value={defaultEmployeeFeeRate}
+                      onChange={(e) => setDefaultEmployeeFeeRate(e.target.value)}
+                      required
+                      min="0"
+                      max="100"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      구직자에게 부과되는 기본 수수료율입니다
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-muted p-4">
+                  <h4 className="text-sm font-medium mb-2">예시 계산 (급여 5,000,000원 기준)</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li className="flex justify-between">
+                      <span>구인자 수수료:</span>
+                      <span className="font-medium">{formatCurrency(employerFee)}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>구직자 수수료:</span>
+                      <span className="font-medium">{formatCurrency(employeeFee)}</span>
+                    </li>
+                    <li className="flex justify-between border-t pt-1 mt-1">
+                      <span className="font-medium">총 수수료:</span>
+                      <span className="font-bold text-primary">{formatCurrency(totalFee)}</span>
+                    </li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={loading}>
+                <Save className="mr-2 h-4 w-4" />
+                {loading ? "저장 중..." : "저장"}
+              </Button>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">
-                수수료율 안내
-              </p>
-              <p className="text-sm text-muted-foreground">
-                • 기본 수수료율은 새로운 공고를 생성할 때 자동으로 적용됩니다.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                • 개별 공고에서 수수료율을 별도로 설정할 수 있습니다.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                • 수수료율은 0%에서 100% 사이의 값으로 설정할 수 있습니다.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </form>
+        </TabsContent>
+
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-purple-500" />
+                <CardTitle>테마 설정</CardTitle>
+              </div>
+              <CardDescription>
+                애플리케이션의 외관을 설정합니다
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="dark-mode">다크 모드</Label>
+                    <p className="text-sm text-muted-foreground">
+                      어두운 배경색을 사용합니다
+                    </p>
+                  </div>
+                  <Switch
+                    id="dark-mode"
+                    checked={isDarkMode}
+                    onCheckedChange={handleThemeToggle}
+                  />
+                </div>
+
+                <div className="rounded-lg border p-4">
+                  <h4 className="text-sm font-medium mb-4">미리보기</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded bg-primary" />
+                      <span className="text-sm">Primary</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded bg-secondary" />
+                      <span className="text-sm">Secondary</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded bg-muted" />
+                      <span className="text-sm">Muted</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded bg-accent" />
+                      <span className="text-sm">Accent</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

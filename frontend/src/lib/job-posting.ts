@@ -1,97 +1,113 @@
-import apiClient from './api';
-import type {
+import { apiClient } from "./api-client";
+import {
   JobPosting,
   JobSeekingPosting,
   CreateJobPostingRequest,
-  CreateJobSeekingPostingRequest,
-  UpdateJobPostingRequest,
-  UpdateJobSeekingPostingRequest,
-  ListJobPostingsQuery,
-  ListJobSeekingsQuery,
-  JobPostingResponse,
-  JobPostingsListResponse,
-  JobSeekingResponse,
-  JobSeekingsListResponse,
-} from '@/types/job-posting';
+  CreateJobSeekingRequest,
+  JobPostingMemo,
+  JobSeekingMemo,
+} from "@/types/job-posting";
 
 export const jobPostingApi = {
-  // Create a new job posting
-  createJobPosting: async (data: CreateJobPostingRequest): Promise<JobPosting> => {
-    const response = await apiClient.post<JobPostingResponse>(
-      '/api/job-postings',
-      data
-    );
-    return response.data.job_posting;
-  },
-
-  // Create a new job seeking posting
-  createJobSeeking: async (data: CreateJobSeekingPostingRequest): Promise<JobSeekingPosting> => {
-    const response = await apiClient.post<JobSeekingResponse>(
-      '/api/job-seekings',
-      data
-    );
-    return response.data.job_seeking;
-  },
-
-  // List all job postings with optional filters
-  listJobPostings: async (query?: ListJobPostingsQuery): Promise<JobPostingsListResponse> => {
-    const response = await apiClient.get<JobPostingsListResponse>(
-      '/api/job-postings',
-      { params: query }
-    );
-    return response.data;
-  },
-
-  // List all job seeking postings with optional filters
-  listJobSeekings: async (query?: ListJobSeekingsQuery): Promise<JobSeekingsListResponse> => {
-    const response = await apiClient.get<JobSeekingsListResponse>(
-      '/api/job-seekings',
-      { params: query }
-    );
-    return response.data;
+  // Get all job postings
+  getAll: async (): Promise<JobPosting[]> => {
+    const response = await apiClient.get("/api/job-postings");
+    return response.data.job_postings || [];
   },
 
   // Get job posting by ID
-  getJobPostingById: async (id: number): Promise<JobPosting> => {
-    const response = await apiClient.get<JobPostingResponse>(
-      `/api/job-postings/${id}`
-    );
+  getById: async (postingId: number): Promise<JobPosting> => {
+    const response = await apiClient.get(`/api/job-postings/${postingId}`);
     return response.data.job_posting;
   },
 
-  // Get job seeking posting by ID
-  getJobSeekingById: async (id: number): Promise<JobSeekingPosting> => {
-    const response = await apiClient.get<JobSeekingResponse>(
-      `/api/job-seekings/${id}`
-    );
-    return response.data.job_seeking;
+  // Create new job posting
+  create: async (data: CreateJobPostingRequest): Promise<JobPosting> => {
+    const response = await apiClient.post("/api/job-postings", data);
+    return response.data.job_posting;
   },
 
   // Update job posting
-  updateJobPosting: async (id: number, data: UpdateJobPostingRequest): Promise<JobPosting> => {
-    const response = await apiClient.put<JobPostingResponse>(
-      `/api/job-postings/${id}`,
-      data
-    );
+  update: async (
+    postingId: number,
+    data: Partial<CreateJobPostingRequest>
+  ): Promise<JobPosting> => {
+    const response = await apiClient.put(`/api/job-postings/${postingId}`, data);
     return response.data.job_posting;
   },
 
-  // Update job seeking posting
-  updateJobSeeking: async (id: number, data: UpdateJobSeekingPostingRequest): Promise<JobSeekingPosting> => {
-    const response = await apiClient.put<JobSeekingResponse>(
-      `/api/job-seekings/${id}`,
-      data
+  // Delete job posting
+  delete: async (postingId: number): Promise<void> => {
+    await apiClient.delete(`/api/job-postings/${postingId}`);
+  },
+
+  // Get job posting memos
+  getMemos: async (postingId: number): Promise<JobPostingMemo[]> => {
+    const response = await apiClient.get(`/api/job-postings/${postingId}/memos`);
+    return response.data;
+  },
+
+  // Create job posting memo
+  createMemo: async (
+    postingId: number,
+    memoText: string
+  ): Promise<JobPostingMemo> => {
+    const response = await apiClient.post(
+      `/api/job-postings/${postingId}/memos`,
+      { memo_text: memoText }
     );
+    return response.data;
+  },
+};
+
+export const jobSeekingApi = {
+  // Get all job seeking postings
+  getAll: async (): Promise<JobSeekingPosting[]> => {
+    const response = await apiClient.get("/api/job-seekings");
+    return response.data.job_seekings || [];
+  },
+
+  // Get job seeking posting by ID
+  getById: async (seekingId: number): Promise<JobSeekingPosting> => {
+    const response = await apiClient.get(`/api/job-seekings/${seekingId}`);
     return response.data.job_seeking;
   },
 
-  // Delete job posting
-  deleteJobPosting: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/job-postings/${id}`);
+  // Create new job seeking posting
+  create: async (data: CreateJobSeekingRequest): Promise<JobSeekingPosting> => {
+    const response = await apiClient.post("/api/job-seekings", data);
+    return response.data.job_seeking;
+  },
+
+  // Update job seeking posting
+  update: async (
+    seekingId: number,
+    data: Partial<CreateJobSeekingRequest>
+  ): Promise<JobSeekingPosting> => {
+    const response = await apiClient.put(`/api/job-seekings/${seekingId}`, data);
+    return response.data.job_seeking;
   },
 
   // Delete job seeking posting
-  deleteJobSeeking: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/job-seekings/${id}`);
+  delete: async (seekingId: number): Promise<void> => {
+    await apiClient.delete(`/api/job-seekings/${seekingId}`);
+  },
+
+  // Get job seeking memos
+  getMemos: async (seekingId: number): Promise<JobSeekingMemo[]> => {
+    const response = await apiClient.get(`/api/job-seekings/${seekingId}/memos`);
+    return response.data;
+  },
+
+  // Create job seeking memo
+  createMemo: async (
+    seekingId: number,
+    memoText: string
+  ): Promise<JobSeekingMemo> => {
+    const response = await apiClient.post(
+      `/api/job-seekings/${seekingId}/memos`,
+      { memo_text: memoText }
+    );
+    return response.data;
   },
 };

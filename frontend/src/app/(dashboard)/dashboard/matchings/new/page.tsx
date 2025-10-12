@@ -1,455 +1,291 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { matchingApi } from '@/lib/matching';
-import { jobPostingApi } from '@/lib/job-posting';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2, ArrowLeft, Calculator } from 'lucide-react';
-import { formatCurrency, calculateFeeAmount } from '@/lib/format';
-import type { JobPosting, JobSeekingPosting } from '@/types/job-posting';
-import apiClient from '@/lib/api';
-
-const matchingSchema = z.object({
-  job_posting_id: z.string().min(1, '구인 공고를 선택해주세요'),
-  job_seeking_posting_id: z.string().min(1, '구직 공고를 선택해주세요'),
-  agreed_salary: z.string().min(1, '합의 급여를 입력해주세요'),
-  employer_fee_rate: z.string().min(1, '고용주 수수료율을 입력해주세요'),
-  employee_fee_rate: z.string().min(1, '근로자 수수료율을 입력해주세요'),
-});
-
-type MatchingFormData = z.infer<typeof matchingSchema>;
-
-interface User {
-  id: number;
-  default_employer_fee_rate?: string;
-  default_employee_fee_rate?: string;
-}
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Plus } from "lucide-react";
+import { apiClient, getErrorMessage } from "@/lib/api-client";
+import { CreateMatchingRequest } from "@/types/matching";
+import { JobPosting, JobSeekingPosting } from "@/types/job-posting";
+import { Customer } from "@/types/customer";
+import { customerApi } from "@/lib/customer";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NewMatchingPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [jobSeekings, setJobSeekings] = useState<JobSeekingPosting[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const form = useForm<MatchingFormData>({
-    resolver: zodResolver(matchingSchema),
-    defaultValues: {
-      job_posting_id: '',
-      job_seeking_posting_id: '',
-      agreed_salary: '',
-      employer_fee_rate: '',
-      employee_fee_rate: '',
-    },
-  });
-
-  const watchedSalary = form.watch('agreed_salary');
-  const watchedEmployerRate = form.watch('employer_fee_rate');
-  const watchedEmployeeRate = form.watch('employee_fee_rate');
-  const watchedJobPostingId = form.watch('job_posting_id');
-  const watchedJobSeekingId = form.watch('job_seeking_posting_id');
-
-  // Calculate fee amounts in real-time
-  const employerFeeAmount = useMemo(() => {
-    if (!watchedSalary || !watchedEmployerRate) return 0;
-    return calculateFeeAmount(watchedSalary, watchedEmployerRate);
-  }, [watchedSalary, watchedEmployerRate]);
-
-  const employeeFeeAmount = useMemo(() => {
-    if (!watchedSalary || !watchedEmployeeRate) return 0;
-    return calculateFeeAmount(watchedSalary, watchedEmployeeRate);
-  }, [watchedSalary, watchedEmployeeRate]);
-
-  const totalCommission = useMemo(() => {
-    return employerFeeAmount + employeeFeeAmount;
-  }, [employerFeeAmount, employeeFeeAmount]);
+  // Form state
+  const [jobPostingId, setJobPostingId] = useState("");
+  const [jobSeekingId, setJobSeekingId] = useState("");
+  const [agreedSalary, setAgreedSalary] = useState("");
+  const [employerFeeRate, setEmployerFeeRate] = useState("10");
+  const [employeeFeeRate, setEmployeeFeeRate] = useState("5");
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
+    fetchData();
+  }, []);
 
-        // Load current user info for default rates
-        const userResponse = await apiClient.get('/api/profile');
-        setCurrentUser(userResponse.data.user);
-
-        // Load job postings (only published and in_progress)
-        const jobPostingsResponse = await jobPostingApi.listJobPostings({
-          status: 'published',
-          limit: 100,
-        });
-        setJobPostings(jobPostingsResponse.job_postings);
-
-        // Load job seeking postings (only published and in_progress)
-        const jobSeekingsResponse = await jobPostingApi.listJobSeekings({
-          status: 'published',
-          limit: 100,
-        });
-        setJobSeekings(jobSeekingsResponse.job_seekings);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        toast({
-          title: '오류',
-          description: '데이터를 불러오는데 실패했습니다.',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, [toast]);
-
-  // Auto-populate rates when job posting is selected
-  useEffect(() => {
-    if (!watchedJobPostingId || !currentUser) return;
-
-    const selectedPosting = jobPostings.find(p => p.id.toString() === watchedJobPostingId);
-    if (selectedPosting) {
-      // Set agreed salary to job posting salary by default
-      if (!watchedSalary) {
-        form.setValue('agreed_salary', selectedPosting.salary);
-      }
-
-      // Set employer fee rate (use posting's rate if set, otherwise user's default)
-      const employerRate = selectedPosting.employer_fee_rate || currentUser.default_employer_fee_rate || '10';
-      form.setValue('employer_fee_rate', employerRate);
-    }
-  }, [watchedJobPostingId, jobPostings, currentUser, form]);
-
-  // Auto-populate employee rate when job seeking is selected
-  useEffect(() => {
-    if (!watchedJobSeekingId || !currentUser) return;
-
-    const selectedSeeking = jobSeekings.find(s => s.id.toString() === watchedJobSeekingId);
-    if (selectedSeeking) {
-      // Set employee fee rate (use seeking's rate if set, otherwise user's default)
-      const employeeRate = selectedSeeking.employee_fee_rate || currentUser.default_employee_fee_rate || '10';
-      form.setValue('employee_fee_rate', employeeRate);
-    }
-  }, [watchedJobSeekingId, jobSeekings, currentUser, form]);
-
-  const onSubmit = async (data: MatchingFormData) => {
+  const fetchData = async () => {
     try {
-      setIsSubmitting(true);
+      const [customersData, jobPostingsData, jobSeekingsData] = await Promise.all([
+        customerApi.getAll(),
+        apiClient.get("/api/job-postings"),
+        apiClient.get("/api/job-seekings"),
+      ]);
 
-      await matchingApi.create({
-        job_posting_id: parseInt(data.job_posting_id),
-        job_seeking_posting_id: parseInt(data.job_seeking_posting_id),
-        agreed_salary: data.agreed_salary,
-        employer_fee_rate: data.employer_fee_rate,
-        employee_fee_rate: data.employee_fee_rate,
-      });
-
-      toast({
-        title: '성공',
-        description: '매칭이 등록되었습니다.',
-      });
-
-      router.push('/dashboard/matchings');
+      setCustomers(customersData);
+      setJobPostings(jobPostingsData.data.job_postings || []);
+      setJobSeekings(jobSeekingsData.data.job_seekings || []);
     } catch (error) {
-      console.error('Failed to create matching:', error);
-      toast({
-        title: '오류',
-        description: '매칭 등록에 실패했습니다.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
+      console.error("Failed to fetch data:", error);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!jobPostingId || !jobSeekingId || !agreedSalary) {
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: "모든 필수 항목을 입력해주세요.",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload: CreateMatchingRequest = {
+        job_posting_id: parseInt(jobPostingId),
+        job_seeking_posting_id: parseInt(jobSeekingId),
+        agreed_salary: parseFloat(agreedSalary),
+        employer_fee_rate: parseFloat(employerFeeRate),
+        employee_fee_rate: parseFloat(employeeFeeRate),
+      };
+
+      const response = await apiClient.post("/api/matchings", payload);
+      router.push(`/dashboard/matchings/${response.data.id}`);
+    } catch (error) {
+      console.error("Failed to create matching:", error);
+      const errorMessage = getErrorMessage(error);
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: errorMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getCustomerName = (customerId: number) => {
+    const customer = customers.find((c) => c.id === customerId);
+    return customer ? customer.name : "알 수 없음";
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "KRW",
+    }).format(amount);
+  };
+
+  const calculateFeeAmount = (salary: number, rate: number) => {
+    return (salary * rate) / 100;
+  };
+
+  const selectedPosting = jobPostings.find((p) => p.id === parseInt(jobPostingId));
+  const selectedSeeking = jobSeekings.find((s) => s.id === parseInt(jobSeekingId));
+  const salaryAmount = parseFloat(agreedSalary) || 0;
+  const employerFee = calculateFeeAmount(salaryAmount, parseFloat(employerFeeRate));
+  const employeeFee = calculateFeeAmount(salaryAmount, parseFloat(employeeFeeRate));
+  const totalFee = employerFee + employeeFee;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/dashboard/matchings')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          목록으로
-        </Button>
-      </div>
-
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">새 매칭 등록</h1>
-        <p className="text-muted-foreground">
-          구인-구직 매칭을 생성하고 수수료를 자동 계산합니다
-        </p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>매칭 정보</CardTitle>
-              <CardDescription>
-                구인/구직 공고를 선택하고 급여 정보를 입력하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="job_posting_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>구인 공고 (고용주) *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="구인 공고를 선택하세요" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {jobPostings.length === 0 ? (
-                              <SelectItem value="none" disabled>
-                                등록된 구인 공고가 없습니다
-                              </SelectItem>
-                            ) : (
-                              jobPostings.map((posting) => (
-                                <SelectItem key={posting.id} value={posting.id.toString()}>
-                                  #{posting.id} - 급여: {formatCurrency(parseFloat(posting.salary))} - {posting.description.substring(0, 30)}...
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          일자리를 제공하는 고용주의 구인 공고
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="job_seeking_posting_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>구직 공고 (근로자) *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="구직 공고를 선택하세요" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {jobSeekings.length === 0 ? (
-                              <SelectItem value="none" disabled>
-                                등록된 구직 공고가 없습니다
-                              </SelectItem>
-                            ) : (
-                              jobSeekings.map((seeking) => (
-                                <SelectItem key={seeking.id} value={seeking.id.toString()}>
-                                  #{seeking.id} - 희망급여: {formatCurrency(parseFloat(seeking.desired_salary))} - {seeking.description.substring(0, 30)}...
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          일자리를 찾는 근로자의 구직 공고
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="agreed_salary"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>합의 급여 (원) *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="3000000"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          고용주와 근로자가 합의한 최종 급여액
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="employer_fee_rate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>고용주 수수료율 (%) *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="10"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          고용주에게 청구할 수수료 비율 (구인 공고에서 자동 설정)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="employee_fee_rate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>근로자 수수료율 (%) *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="10"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          근로자에게 청구할 수수료 비율 (구직 공고에서 자동 설정)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push('/dashboard/matchings')}
-                      disabled={isSubmitting}
-                    >
-                      취소
-                    </Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          등록 중...
-                        </>
-                      ) : (
-                        '등록'
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-1">
-          <Card className="sticky top-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                수수료 계산
-              </CardTitle>
-              <CardDescription>
-                실시간 자동 계산 결과
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">합의 급여</div>
-                <div className="text-2xl font-bold">
-                  {watchedSalary ? formatCurrency(parseFloat(watchedSalary)) : '₩0'}
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="text-sm text-muted-foreground mb-1">고용주 수수료</div>
-                <div className="text-xl font-semibold text-green-600">
-                  {formatCurrency(employerFeeAmount)}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {watchedEmployerRate}% 적용
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="text-sm text-muted-foreground mb-1">근로자 수수료</div>
-                <div className="text-xl font-semibold text-green-600">
-                  {formatCurrency(employeeFeeAmount)}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {watchedEmployeeRate}% 적용
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="text-sm text-muted-foreground mb-1">총 수수료</div>
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(totalCommission)}
-                </div>
-              </div>
-
-              <div className="bg-muted p-3 rounded-md text-xs text-muted-foreground">
-                <p className="font-semibold mb-1">계산 방식</p>
-                <p>고용주: {watchedSalary || 0} × {watchedEmployerRate || 0}% = {formatCurrency(employerFeeAmount)}</p>
-                <p>근로자: {watchedSalary || 0} × {watchedEmployeeRate || 0}% = {formatCurrency(employeeFeeAmount)}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <Link href="/dashboard/matchings">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            취소
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">새 매칭 등록</h1>
+          <p className="text-muted-foreground">
+            구인 공고와 구직 공고를 매칭합니다
+          </p>
         </div>
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>기본 정보</CardTitle>
+            <CardDescription>구인 공고와 구직 공고를 선택합니다</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="jobPosting">
+                구인 공고 <span className="text-destructive">*</span>
+              </Label>
+              <Select value={jobPostingId} onValueChange={setJobPostingId} required>
+                <SelectTrigger id="jobPosting">
+                  <SelectValue placeholder="구인 공고를 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobPostings.map((posting) => (
+                    <SelectItem key={posting.id} value={posting.id.toString()}>
+                      #{posting.id} - {getCustomerName(posting.customer_id)} ({formatCurrency(posting.salary)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedPosting && (
+                <p className="text-sm text-muted-foreground">
+                  구인자: {getCustomerName(selectedPosting.customer_id)} |
+                  제시 급여: {formatCurrency(selectedPosting.salary)}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="jobSeeking">
+                구직 공고 <span className="text-destructive">*</span>
+              </Label>
+              <Select value={jobSeekingId} onValueChange={setJobSeekingId} required>
+                <SelectTrigger id="jobSeeking">
+                  <SelectValue placeholder="구직 공고를 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobSeekings.map((seeking) => (
+                    <SelectItem key={seeking.id} value={seeking.id.toString()}>
+                      #{seeking.id} - {getCustomerName(seeking.customer_id)} ({formatCurrency(seeking.desired_salary)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedSeeking && (
+                <p className="text-sm text-muted-foreground">
+                  구직자: {getCustomerName(selectedSeeking.customer_id)} |
+                  희망 급여: {formatCurrency(selectedSeeking.desired_salary)} |
+                  선호 지역: {selectedSeeking.preferred_location}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>급여 정보</CardTitle>
+            <CardDescription>합의된 급여를 입력합니다</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="agreedSalary">
+                합의 급여 (원/월) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="agreedSalary"
+                type="number"
+                value={agreedSalary}
+                onChange={(e) => setAgreedSalary(e.target.value)}
+                placeholder="3500000"
+                required
+                min="0"
+                step="10000"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>수수료 설정</CardTitle>
+            <CardDescription>
+              구인자 및 구직자 수수료율을 설정합니다
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="employerFeeRate">
+                  구인자 수수료율 (%) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="employerFeeRate"
+                  type="number"
+                  step="0.1"
+                  value={employerFeeRate}
+                  onChange={(e) => setEmployerFeeRate(e.target.value)}
+                  placeholder="10"
+                  required
+                  min="0"
+                  max="100"
+                />
+                <p className="text-sm text-muted-foreground">
+                  예상 수수료: {formatCurrency(employerFee)}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="employeeFeeRate">
+                  구직자 수수료율 (%) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="employeeFeeRate"
+                  type="number"
+                  step="0.1"
+                  value={employeeFeeRate}
+                  onChange={(e) => setEmployeeFeeRate(e.target.value)}
+                  placeholder="5"
+                  required
+                  min="0"
+                  max="100"
+                />
+                <p className="text-sm text-muted-foreground">
+                  예상 수수료: {formatCurrency(employeeFee)}
+                </p>
+              </div>
+            </div>
+
+            {salaryAmount > 0 && (
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">총 예상 수수료</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {formatCurrency(totalFee)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-4">
+          <Link href="/dashboard/matchings">
+            <Button type="button" variant="outline">
+              취소
+            </Button>
+          </Link>
+          <Button type="submit" disabled={loading}>
+            <Plus className="mr-2 h-4 w-4" />
+            {loading ? "생성 중..." : "매칭 등록"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

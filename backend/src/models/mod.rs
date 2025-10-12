@@ -1,4 +1,5 @@
 pub mod customer;
+pub mod error;
 pub mod file;
 pub mod job_posting;
 pub mod matching;

@@ -1,75 +1,68 @@
-// Backend uses PascalCase for enum values
-export type CustomerType = 'Employer' | 'Employee' | 'Both';
-
-// Runtime constants for CustomerType (since TypeScript types don't exist at runtime)
-export const CUSTOMER_TYPES = {
-  Employer: 'Employer' as const,
-  Employee: 'Employee' as const,
-  Both: 'Both' as const,
-} as const;
-
-export const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
-  Employer: '고용주',
-  Employee: '근로자',
-  Both: '양쪽',
-};
+export type CustomerType = "Employer" | "Employee" | "Both";
 
 export interface Customer {
   id: number;
   user_id: number;
   name: string;
-  birth_date?: string; // ISO date string
+  birth_date: string | null;
   phone: string;
-  address?: string;
-  profile_photo_id?: number;
+  address: string | null;
+  profile_photo_id: number | null;
   customer_type: CustomerType;
   created_at: string;
   updated_at: string;
-  deleted_at?: string;
+  deleted_at: string | null;
+}
+
+export interface CustomerMemo {
+  id: number;
+  customer_id: number;
+  memo_content: string;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface CustomerFile {
+  id: number;
+  customer_id: number;
+  file_path: string;
+  file_type: string;
+  file_size: number | null;
+  thumbnail_path: string | null;
+  original_filename: string | null;
+  mime_type: string | null;
+  is_profile: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface CustomerTag {
+  id: number;
+  user_id: number;
+  tag_name: string;
+  tag_color: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface CreateCustomerRequest {
   name: string;
-  birth_date?: string; // ISO date string (YYYY-MM-DD)
+  birth_date?: string | null;
   phone: string;
-  address?: string;
+  address?: string | null;
   customer_type: CustomerType;
 }
 
 export interface UpdateCustomerRequest {
   name?: string;
-  birth_date?: string; // ISO date string (YYYY-MM-DD)
+  birth_date?: string | null;
   phone?: string;
-  address?: string;
-  profile_photo_id?: number;
+  address?: string | null;
+  profile_photo_id?: number | null;
   customer_type?: CustomerType;
 }
-
-export interface ListCustomersQuery {
-  customer_type?: CustomerType;
-  tag_ids?: string; // Comma-separated tag IDs
-  search?: string;
-  page?: number;
-  pageSize?: number;
-  limit?: number;
-  offset?: number;
-}
-
-export interface SearchCustomersQuery {
-  q: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CustomerResponse {
-  customer: Customer;
-}
-
-export interface CustomersListResponse {
-  customers: Customer[];
-  total: number;
-}
-
-// Type aliases for compatibility
-export type CustomerFilters = ListCustomersQuery;
-export type CustomerListResponse = CustomersListResponse;

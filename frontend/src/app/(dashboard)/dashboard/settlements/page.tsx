@@ -1,565 +1,441 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2, DollarSign, TrendingUp, CheckCircle, Clock, Search } from 'lucide-react';
-import { jobPostingApi } from '@/lib/job-posting';
-import { customerApi } from '@/lib/customer';
-import { Customer } from '@/types/customer';
-import apiClient from '@/lib/api';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, Eye, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiClient, getErrorMessage } from "@/lib/api-client";
+import { customerApi } from "@/lib/customer";
+import { Matching } from "@/types/matching";
+import { JobPosting, JobSeekingPosting } from "@/types/job-posting";
+import { Customer } from "@/types/customer";
+import { toNumber, formatCurrencyFromString } from "@/lib/utils/currency";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/use-pagination";
 
-import { JobPosting as JobPostingType, JobSeekingPosting } from '@/types/job-posting';
-
-interface SettlementItem {
-  id: number;
-  type: 'posting' | 'seeking';
-  customer_id: number;
-  customer_name: string;
-  description: string;
-  amount: string;
-  settlement_status: string;
-  settlement_amount: string | null | undefined;
-  settlement_memo: string | null | undefined;
-  created_at: string;
-  original: JobPostingType | JobSeekingPosting;
+interface SettlementInfo {
+  matching: Matching;
+  jobPosting: JobPosting;
+  jobSeeking: JobSeekingPosting;
+  employerName: string;
+  employeeName: string;
 }
 
-interface SettlementStats {
-  totalUnsettled: number;
-  totalSettled: number;
-  unsettledAmount: number;
-  settledAmount: number;
-}
+const settlementStatusMap = {
+  Unsettled: { label: "미정산", variant: "destructive" as const },
+  Settled: { label: "정산완료", variant: "default" as const },
+};
 
 export default function SettlementsPage() {
-  const router = useRouter();
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [settlements, setSettlements] = useState<SettlementItem[]>([]);
-  const [filteredSettlements, setFilteredSettlements] = useState<SettlementItem[]>([]);
-  const [customers, setCustomers] = useState<Record<number, Customer>>({});
-  const [stats, setStats] = useState<SettlementStats>({
-    totalUnsettled: 0,
-    totalSettled: 0,
-    unsettledAmount: 0,
-    settledAmount: 0,
-  });
-
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Settlement dialog state
-  const [settleDialog, setSettleDialog] = useState<{
-    open: boolean;
-    item: SettlementItem | null;
-  }>({ open: false, item: null });
-  const [settlementAmount, setSettlementAmount] = useState('');
-  const [settlementMemo, setSettlementMemo] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [settlements, setSettlements] = useState<SettlementInfo[]>([]);
+  const [customerMap, setCustomerMap] = useState<Map<number, Customer>>(new Map());
 
   useEffect(() => {
-    loadSettlementData();
+    fetchSettlements();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [settlements, statusFilter, typeFilter, searchQuery]);
-
-  const applyFilters = () => {
-    let filtered = [...settlements];
-
-    // Filter by settlement status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((s) => s.settlement_status === statusFilter);
-    }
-
-    // Filter by type
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter((s) => s.type === typeFilter);
-    }
-
-    // Search by customer name
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((s) =>
-        s.customer_name.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredSettlements(filtered);
-  };
-
-  const loadSettlementData = async () => {
+  const fetchSettlements = async () => {
     try {
       setLoading(true);
 
-      // Load all job postings and job seekings
-      const [postingsRes, seekingsRes, customersRes] = await Promise.all([
-        jobPostingApi.listJobPostings({ limit: 1000 }),
-        jobPostingApi.listJobSeekings({ limit: 1000 }),
-        customerApi.list({ limit: 10000 }),
+      // Fetch all data in parallel
+      const [matchingsRes, jobPostingsRes, jobSeekingsRes, customers] = await Promise.all([
+        apiClient.get("/api/matchings"),
+        apiClient.get("/api/job-postings"),
+        apiClient.get("/api/job-seekings"),
+        customerApi.getAll(),
       ]);
 
+      const matchings: Matching[] = matchingsRes.data.matchings || [];
+      const jobPostings: JobPosting[] = jobPostingsRes.data.job_postings || [];
+      const jobSeekings: JobSeekingPosting[] = jobSeekingsRes.data.job_seekings || [];
+
       // Create customer map
-      const customerMap: Record<number, Customer> = {};
-      customersRes.customers.forEach((c) => {
-        customerMap[c.id] = c;
-      });
-      setCustomers(customerMap);
+      const custMap = new Map(customers.map((c) => [c.id, c]));
+      setCustomerMap(custMap);
 
-      // Combine and transform settlements
-      const allSettlements: SettlementItem[] = [];
+      // Create job posting and seeking maps
+      const postingMap = new Map(jobPostings.map((p) => [p.id, p]));
+      const seekingMap = new Map(jobSeekings.map((s) => [s.id, s]));
 
-      postingsRes.job_postings.forEach((posting) => {
-        const customer = customerMap[posting.customer_id];
-        allSettlements.push({
-          id: posting.id,
-          type: 'posting',
-          customer_id: posting.customer_id,
-          customer_name: customer?.name || '알 수 없음',
-          description: posting.description,
-          amount: posting.salary,
-          settlement_status: posting.settlement_status,
-          settlement_amount: posting.settlement_amount,
-          settlement_memo: posting.settlement_memo,
-          created_at: posting.created_at,
-          original: posting,
-        });
-      });
+      // Combine data
+      const settlementInfos: SettlementInfo[] = matchings
+        .map((matching) => {
+          const jobPosting = postingMap.get(matching.job_posting_id);
+          const jobSeeking = seekingMap.get(matching.job_seeking_posting_id);
 
-      seekingsRes.job_seekings.forEach((seeking) => {
-        const customer = customerMap[seeking.customer_id];
-        allSettlements.push({
-          id: seeking.id,
-          type: 'seeking',
-          customer_id: seeking.customer_id,
-          customer_name: customer?.name || '알 수 없음',
-          description: seeking.description,
-          amount: seeking.desired_salary,
-          settlement_status: seeking.settlement_status,
-          settlement_amount: seeking.settlement_amount,
-          settlement_memo: seeking.settlement_memo,
-          created_at: seeking.created_at,
-          original: seeking,
-        });
-      });
+          if (!jobPosting || !jobSeeking) return null;
 
-      // Sort by created_at descending
-      allSettlements.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+          const employer = custMap.get(jobPosting.customer_id);
+          const employee = custMap.get(jobSeeking.customer_id);
 
-      setSettlements(allSettlements);
+          return {
+            matching,
+            jobPosting,
+            jobSeeking,
+            employerName: employer?.name || "알 수 없음",
+            employeeName: employee?.name || "알 수 없음",
+          };
+        })
+        .filter((info): info is SettlementInfo => info !== null);
 
-      // Calculate stats
-      const unsettled = allSettlements.filter(
-        (s) => s.settlement_status === 'Unsettled'
-      );
-      const settled = allSettlements.filter(
-        (s) => s.settlement_status === 'Settled'
-      );
-
-      const unsettledAmount = unsettled.reduce(
-        (sum, s) => sum + parseFloat(s.settlement_amount || '0'),
-        0
-      );
-
-      const settledAmount = settled.reduce(
-        (sum, s) => sum + parseFloat(s.settlement_amount || '0'),
-        0
-      );
-
-      setStats({
-        totalUnsettled: unsettled.length,
-        totalSettled: settled.length,
-        unsettledAmount,
-        settledAmount,
-      });
+      setSettlements(settlementInfos);
     } catch (error) {
-      console.error('Failed to load settlement data:', error);
+      console.error("Failed to fetch settlements:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
-        title: '오류',
-        description: '정산 데이터를 불러오는데 실패했습니다.',
-        variant: 'destructive',
+        variant: "destructive",
+        title: "오류",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const openSettleDialog = (item: SettlementItem) => {
-    setSettleDialog({ open: true, item });
-    setSettlementAmount(item.settlement_amount || '');
-    setSettlementMemo(item.settlement_memo || '');
-  };
+  const filteredSettlements = settlements.filter((settlement) => {
+    const matchesSearch =
+      settlement.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      settlement.employeeName.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const handleSettle = async () => {
-    if (!settleDialog.item) return;
+    return matchesSearch;
+  });
 
-    try {
-      setSubmitting(true);
+  // Pagination for all settlements
+  const {
+    paginatedItems: paginatedAllSettlements,
+    currentPage: allCurrentPage,
+    totalPages: allTotalPages,
+    setCurrentPage: setAllCurrentPage,
+  } = usePagination({
+    items: filteredSettlements,
+    itemsPerPage: 10,
+    resetDependencies: [searchTerm],
+  });
 
-      const endpoint =
-        settleDialog.item.type === 'posting'
-          ? `/api/job-postings/${settleDialog.item.id}`
-          : `/api/job-seekings/${settleDialog.item.id}`;
+  // Calculate statistics
+  const stats = settlements.reduce(
+    (acc, settlement) => {
+      const employerFee = toNumber(settlement.matching.employer_fee_amount);
+      const employeeFee = toNumber(settlement.matching.employee_fee_amount);
+      const totalFee = employerFee + employeeFee;
 
-      await apiClient.put(endpoint, {
-        settlement_status: 'Settled',
-        settlement_amount: settlementAmount ? parseFloat(settlementAmount) : null,
-        settlement_memo: settlementMemo || null,
-      });
+      acc.totalCommission += totalFee;
 
-      toast({
-        title: '성공',
-        description: '정산이 완료되었습니다.',
-      });
+      if (settlement.jobPosting.settlement_status === "Unsettled") {
+        acc.pendingAmount += toNumber(settlement.jobPosting.settlement_amount) || employerFee;
+      }
 
-      setSettleDialog({ open: false, item: null });
-      await loadSettlementData();
-    } catch (error) {
-      console.error('Failed to settle:', error);
-      toast({
-        title: '오류',
-        description: '정산 처리에 실패했습니다.',
-        variant: 'destructive',
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      if (settlement.jobSeeking.settlement_status === "Unsettled") {
+        acc.pendingAmount += toNumber(settlement.jobSeeking.settlement_amount) || employeeFee;
+      }
 
-  const handleUnsettle = async (item: SettlementItem) => {
-    try {
-      const endpoint =
-        item.type === 'posting'
-          ? `/api/job-postings/${item.id}`
-          : `/api/job-seekings/${item.id}`;
+      if (settlement.jobPosting.settlement_status === "Settled") {
+        acc.paidAmount += toNumber(settlement.jobPosting.settlement_amount) || employerFee;
+      }
 
-      await apiClient.put(endpoint, {
-        settlement_status: 'Unsettled',
-      });
+      if (settlement.jobSeeking.settlement_status === "Settled") {
+        acc.paidAmount += toNumber(settlement.jobSeeking.settlement_amount) || employeeFee;
+      }
 
-      toast({
-        title: '성공',
-        description: '정산 상태가 미정산으로 변경되었습니다.',
-      });
+      return acc;
+    },
+    { totalCommission: 0, pendingAmount: 0, paidAmount: 0 }
+  );
 
-      await loadSettlementData();
-    } catch (error) {
-      console.error('Failed to unsettle:', error);
-      toast({
-        title: '오류',
-        description: '정산 상태 변경에 실패했습니다.',
-        variant: 'destructive',
-      });
-    }
+  const pendingSettlements = filteredSettlements.filter(
+    (s) =>
+      s.jobPosting.settlement_status === "Unsettled" ||
+      s.jobSeeking.settlement_status === "Unsettled"
+  );
+
+  const paidSettlements = filteredSettlements.filter(
+    (s) =>
+      s.jobPosting.settlement_status === "Settled" &&
+      s.jobSeeking.settlement_status === "Settled"
+  );
+
+  // Pagination for pending settlements
+  const {
+    paginatedItems: paginatedPendingSettlements,
+    currentPage: pendingCurrentPage,
+    totalPages: pendingTotalPages,
+    setCurrentPage: setPendingCurrentPage,
+  } = usePagination({
+    items: pendingSettlements,
+    itemsPerPage: 10,
+    resetDependencies: [searchTerm],
+  });
+
+  // Pagination for paid settlements
+  const {
+    paginatedItems: paginatedPaidSettlements,
+    currentPage: paidCurrentPage,
+    totalPages: paidTotalPages,
+    setCurrentPage: setPaidCurrentPage,
+  } = usePagination({
+    items: paidSettlements,
+    itemsPerPage: 10,
+    resetDependencies: [searchTerm],
+  });
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "KRW",
+    }).format(amount);
   };
 
   if (loading) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-9 w-48 mb-2" />
+          <Skeleton className="h-5 w-72" />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4 rounded-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-32 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-24" />
+              ))}
+            </div>
+            <Skeleton className="h-10 w-full" />
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
+    <div className="space-y-6">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">정산 관리</h1>
-        <p className="text-muted-foreground">수수료 정산 현황을 관리합니다</p>
+        <p className="text-muted-foreground">
+          매칭 수수료 정산 현황을 관리합니다
+        </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-2 hover:shadow-lg transition-all">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">미정산 건수</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">총 수수료</CardTitle>
+            <DollarSign className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUnsettled}</div>
-            <p className="text-xs text-muted-foreground">정산 대기 중</p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.totalCommission)}
+            </div>
+            <p className="text-xs text-muted-foreground">전체 매칭 수수료</p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 hover:shadow-lg transition-all">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">정산 완료</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalSettled}</div>
-            <p className="text-xs text-muted-foreground">정산 완료됨</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 hover:shadow-lg transition-all">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">미정산 금액</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <AlertCircle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.unsettledAmount.toLocaleString()}원
+              {formatCurrency(stats.pendingAmount)}
             </div>
-            <p className="text-xs text-muted-foreground">수령 예정</p>
+            <p className="text-xs text-muted-foreground">대기중인 정산</p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 hover:shadow-lg transition-all">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">정산 완료 금액</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">정산 완료</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.settledAmount.toLocaleString()}원
+              {formatCurrency(stats.paidAmount)}
             </div>
-            <p className="text-xs text-muted-foreground">수령 완료</p>
+            <p className="text-xs text-muted-foreground">지급 완료된 금액</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="border-2">
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="고객 이름으로 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="정산 상태" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="Unsettled">미정산</SelectItem>
-                <SelectItem value="Settled">정산완료</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="유형" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="posting">구인 공고</SelectItem>
-                <SelectItem value="seeking">구직 공고</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Combined Settlement List */}
-      <Card className="border-2">
+      <Card>
         <CardHeader>
           <CardTitle>정산 목록</CardTitle>
           <CardDescription>
-            구인 및 구직 공고의 수수료 정산을 통합 관리합니다
+            매칭별 수수료 정산 현황을 확인하고 관리합니다
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-semibold">유형</TableHead>
-                <TableHead className="font-semibold">고객명</TableHead>
-                <TableHead className="font-semibold">설명</TableHead>
-                <TableHead className="font-semibold">금액</TableHead>
-                <TableHead className="font-semibold">정산 상태</TableHead>
-                <TableHead className="font-semibold">정산 금액</TableHead>
-                <TableHead className="font-semibold">메모</TableHead>
-                <TableHead className="font-semibold">작업</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSettlements.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={8}
-                    className="text-center text-muted-foreground py-8"
-                  >
-                    {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
-                      ? '검색 결과가 없습니다.'
-                      : '정산할 항목이 없습니다.'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredSettlements.map((item) => (
-                  <TableRow
-                    key={`${item.type}-${item.id}`}
-                    className="cursor-pointer hover:bg-accent/50 transition-colors"
-                    onClick={() => openSettleDialog(item)}
-                  >
-                    <TableCell>
-                      <Badge variant={item.type === 'posting' ? 'default' : 'secondary'}>
-                        {item.type === 'posting' ? '구인' : '구직'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{item.customer_name}</TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {item.description}
-                    </TableCell>
-                    <TableCell>
-                      {parseFloat(item.amount).toLocaleString()}원
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          item.settlement_status === 'Settled' ? 'default' : 'outline'
-                        }
-                      >
-                        {item.settlement_status === 'Settled' ? '정산완료' : '미정산'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {item.settlement_amount
-                        ? `${parseFloat(item.settlement_amount).toLocaleString()}원`
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {item.settlement_memo || '-'}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      {item.settlement_status === 'Unsettled' ? (
-                        <Button size="sm" onClick={() => openSettleDialog(item)}>
-                          정산 처리
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUnsettle(item)}
-                        >
-                          미정산으로
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <Tabs defaultValue="all" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="all">전체</TabsTrigger>
+              <TabsTrigger value="pending">미정산</TabsTrigger>
+              <TabsTrigger value="paid">정산완료</TabsTrigger>
+            </TabsList>
+
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="구인자, 구직자 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            <TabsContent value="all" className="space-y-4">
+              <SettlementTable settlements={paginatedAllSettlements} formatCurrency={formatCurrency} />
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  총 {filteredSettlements.length}개 (페이지 {allCurrentPage} / {allTotalPages || 1})
+                </p>
+                <PaginationControls
+                  currentPage={allCurrentPage}
+                  totalPages={allTotalPages}
+                  onPageChange={setAllCurrentPage}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="pending" className="space-y-4">
+              <SettlementTable settlements={paginatedPendingSettlements} formatCurrency={formatCurrency} />
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  총 {pendingSettlements.length}개 (페이지 {pendingCurrentPage} / {pendingTotalPages || 1})
+                </p>
+                <PaginationControls
+                  currentPage={pendingCurrentPage}
+                  totalPages={pendingTotalPages}
+                  onPageChange={setPendingCurrentPage}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="paid" className="space-y-4">
+              <SettlementTable settlements={paginatedPaidSettlements} formatCurrency={formatCurrency} />
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  총 {paidSettlements.length}개 (페이지 {paidCurrentPage} / {paidTotalPages || 1})
+                </p>
+                <PaginationControls
+                  currentPage={paidCurrentPage}
+                  totalPages={paidTotalPages}
+                  onPageChange={setPaidCurrentPage}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+    </div>
+  );
+}
 
-      {/* Settlement Dialog */}
-      <Dialog
-        open={settleDialog.open}
-        onOpenChange={(open) => !open && setSettleDialog({ open: false, item: null })}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>정산 처리</DialogTitle>
-            <DialogDescription>
-              {settleDialog.item && (
-                <>
-                  {settleDialog.item.customer_name} -{' '}
-                  <Badge
-                    variant={
-                      settleDialog.item.type === 'posting' ? 'default' : 'secondary'
-                    }
-                  >
-                    {settleDialog.item.type === 'posting' ? '구인' : '구직'}
+interface SettlementTableProps {
+  settlements: SettlementInfo[];
+  formatCurrency: (amount: number) => string;
+}
+
+function SettlementTable({ settlements, formatCurrency }: SettlementTableProps) {
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>매칭 ID</TableHead>
+            <TableHead>구인자</TableHead>
+            <TableHead>구직자</TableHead>
+            <TableHead>합의 급여</TableHead>
+            <TableHead>구인자 수수료</TableHead>
+            <TableHead>구인자 정산</TableHead>
+            <TableHead>구직자 수수료</TableHead>
+            <TableHead>구직자 정산</TableHead>
+            <TableHead className="text-right">작업</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {settlements.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center text-muted-foreground">
+                정산 내역이 없습니다
+              </TableCell>
+            </TableRow>
+          ) : (
+            settlements.map((settlement) => (
+              <TableRow key={settlement.matching.id}>
+                <TableCell className="font-medium">
+                  #{settlement.matching.id}
+                </TableCell>
+                <TableCell>{settlement.employerName}</TableCell>
+                <TableCell>{settlement.employeeName}</TableCell>
+                <TableCell>
+                  {formatCurrencyFromString(settlement.matching.agreed_salary)}
+                </TableCell>
+                <TableCell>
+                  {formatCurrencyFromString(settlement.matching.employer_fee_amount)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={settlementStatusMap[settlement.jobPosting.settlement_status].variant}>
+                    {settlementStatusMap[settlement.jobPosting.settlement_status].label}
                   </Badge>
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="settlement_amount">정산 금액 (원)</Label>
-              <Input
-                id="settlement_amount"
-                type="number"
-                placeholder="500000"
-                value={settlementAmount}
-                onChange={(e) => setSettlementAmount(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="settlement_memo">정산 메모</Label>
-              <Textarea
-                id="settlement_memo"
-                placeholder="2025-10-15 계좌 입금 완료"
-                value={settlementMemo}
-                onChange={(e) => setSettlementMemo(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSettleDialog({ open: false, item: null })}
-              disabled={submitting}
-            >
-              취소
-            </Button>
-            <Button onClick={handleSettle} disabled={submitting}>
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  처리 중...
-                </>
-              ) : (
-                '정산 완료'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                </TableCell>
+                <TableCell>
+                  {formatCurrencyFromString(settlement.matching.employee_fee_amount)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={settlementStatusMap[settlement.jobSeeking.settlement_status].variant}>
+                    {settlementStatusMap[settlement.jobSeeking.settlement_status].label}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Link href={`/dashboard/matchings/${settlement.matching.id}`}>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="mr-2 h-4 w-4" />
+                      상세
+                    </Button>
+                  </Link>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }
