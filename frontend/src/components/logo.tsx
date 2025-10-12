@@ -1,39 +1,32 @@
-import Link from 'next/link';
-import { Briefcase } from 'lucide-react';
+import React from 'react';
 
 interface LogoProps {
-  width?: number;
-  height?: number;
-  href?: string;
   className?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function Logo({
-  width = 160,
-  height = 36,
-  href = "/",
-  className = ""
-}: LogoProps) {
-  const logoElement = (
+const sizeClasses = {
+  sm: 'h-6',
+  md: 'h-8',
+  lg: 'h-10',
+};
+
+export function Logo({ className = '', size = 'md' }: LogoProps) {
+  return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-600 to-green-500 shadow-md">
-        <Briefcase className="h-5 w-5 text-white" strokeWidth={2.5} />
-      </div>
-      <div className="flex flex-col">
-        <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent">
-          Helpernote
-        </span>
-      </div>
+      <svg
+        className={`${sizeClasses[size]} w-auto text-primary`}
+        viewBox="0 0 40 40"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect x="4" y="10" width="32" height="20" rx="4" fill="currentColor" opacity="0.1"/>
+        <path d="M10 16h20M10 20h14M10 24h16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="28" cy="14" r="4" fill="currentColor"/>
+      </svg>
+      <span className={`font-bold text-foreground ${size === 'sm' ? 'text-base' : size === 'md' ? 'text-lg' : 'text-xl'}`}>
+        Helpernote
+      </span>
     </div>
   );
-
-  if (href) {
-    return (
-      <Link href={href} className="flex items-center transition-opacity hover:opacity-80">
-        {logoElement}
-      </Link>
-    );
-  }
-
-  return logoElement;
 }

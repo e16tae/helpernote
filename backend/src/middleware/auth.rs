@@ -111,7 +111,6 @@ pub async fn auth_middleware(
 pub mod extract {
     use super::AuthUser;
     use axum::{
-        async_trait,
         extract::FromRequestParts,
         http::{request::Parts, StatusCode},
         Json,
@@ -119,7 +118,6 @@ pub mod extract {
 
     use super::AuthErrorResponse;
 
-    #[async_trait]
     impl<S> FromRequestParts<S> for AuthUser
     where
         S: Send + Sync,

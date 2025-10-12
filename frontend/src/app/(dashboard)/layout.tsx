@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { authApi } from '@/lib/auth';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { Sidebar } from '@/components/sidebar';
-import { Header } from '@/components/header';
-import { Toaster } from '@/components/ui/toaster';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Sidebar } from "@/components/sidebar";
+import { Header } from "@/components/header";
+import { Toaster } from "@/components/ui/toaster";
+import { PageTransition } from "@/components/page-transition";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export default function DashboardLayout({
   children,
@@ -14,42 +14,26 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated - only runs on client
-    const authenticated = authApi.isAuthenticated();
-    setIsAuthenticated(authenticated);
-    setIsChecking(false);
-
-    if (!authenticated) {
-      router.push('/login');
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
     }
   }, [router]);
 
-  // Show nothing while checking (prevents hydration mismatch)
-  if (isChecking) {
-    return null;
-  }
-
-  // Don't render dashboard if not authenticated
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
-    <AuthProvider>
+    <ErrorBoundary>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
           <main className="flex-1 overflow-y-auto bg-background p-6">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </main>
         </div>
         <Toaster />
       </div>
-    </AuthProvider>
+    </ErrorBoundary>
   );
 }

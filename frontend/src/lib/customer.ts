@@ -1,60 +1,87 @@
-import apiClient from './api';
-import type {
+import { apiClient } from "./api-client";
+import {
   Customer,
   CreateCustomerRequest,
   UpdateCustomerRequest,
-  ListCustomersQuery,
-  SearchCustomersQuery,
-  CustomerResponse,
-  CustomersListResponse,
-} from '@/types/customer';
+  CustomerMemo,
+  CustomerFile,
+} from "@/types/customer";
 
 export const customerApi = {
-  // Create a new customer
-  create: async (data: CreateCustomerRequest): Promise<Customer> => {
-    const response = await apiClient.post<CustomerResponse>(
-      '/api/customers',
-      data
-    );
-    return response.data.customer;
-  },
-
-  // Get all customers with optional filters
-  list: async (query?: ListCustomersQuery): Promise<CustomersListResponse> => {
-    const response = await apiClient.get<CustomersListResponse>(
-      '/api/customers',
-      { params: query }
-    );
-    return response.data;
+  // Get all customers
+  getAll: async (): Promise<Customer[]> => {
+    const response = await apiClient.get("/api/customers");
+    return response.data.customers || [];
   },
 
   // Get customer by ID
-  getById: async (id: number): Promise<Customer> => {
-    const response = await apiClient.get<CustomerResponse>(
-      `/api/customers/${id}`
-    );
+  getById: async (customerId: number): Promise<Customer> => {
+    const response = await apiClient.get(`/api/customers/${customerId}`);
+    return response.data.customer;
+  },
+
+  // Create new customer
+  create: async (data: CreateCustomerRequest): Promise<Customer> => {
+    const response = await apiClient.post("/api/customers", data);
     return response.data.customer;
   },
 
   // Update customer
-  update: async (id: number, data: UpdateCustomerRequest): Promise<Customer> => {
-    const response = await apiClient.put<CustomerResponse>(
-      `/api/customers/${id}`,
-      data
-    );
+  update: async (
+    customerId: number,
+    data: UpdateCustomerRequest
+  ): Promise<Customer> => {
+    const response = await apiClient.put(`/api/customers/${customerId}`, data);
     return response.data.customer;
   },
 
   // Delete customer (soft delete)
-  delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/customers/${id}`);
+  delete: async (customerId: number): Promise<void> => {
+    await apiClient.delete(`/api/customers/${customerId}`);
   },
 
-  // Search customers by name or phone
-  search: async (query: SearchCustomersQuery): Promise<CustomersListResponse> => {
-    const response = await apiClient.get<CustomersListResponse>(
-      '/api/customers/search',
-      { params: query }
+  // Get customer memos
+  getMemos: async (customerId: number): Promise<CustomerMemo[]> => {
+    const response = await apiClient.get(`/api/customers/${customerId}/memos`);
+    return response.data;
+  },
+
+  // Create customer memo
+  createMemo: async (
+    customerId: number,
+    memoText: string
+  ): Promise<CustomerMemo> => {
+    const response = await apiClient.post(
+      `/api/customers/${customerId}/memos`,
+      { memo_text: memoText }
+    );
+    return response.data;
+  },
+
+  // Get customer files
+  getFiles: async (customerId: number): Promise<CustomerFile[]> => {
+    const response = await apiClient.get(`/api/customers/${customerId}/files`);
+    return response.data;
+  },
+
+  // Upload customer file
+  uploadFile: async (
+    customerId: number,
+    file: File,
+    isProfile: boolean = false
+  ): Promise<CustomerFile> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("is_profile", String(isProfile));
+
+    const response = await apiClient.post(
+      `/api/customers/${customerId}/files`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   },

@@ -1,68 +1,34 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Helpernote - 소개소 관리 시스템",
-    template: "%s | Helpernote"
+    default: "Helpernote - 취업 알선 중개 플랫폼",
+    template: "%s | Helpernote",
   },
-  description: "소개소를 위한 통합 고객 관리 및 매칭 플랫폼. 고용주와 근로자를 효율적으로 연결하고, 매칭 현황과 수수료를 체계적으로 관리하세요.",
-  keywords: ["소개소", "구인구직", "매칭", "고객관리", "CRM", "헬퍼노트"],
+  description: "구인자와 구직자를 연결하는 전문 취업 알선 중개 서비스",
+  keywords: ["취업", "구인", "구직", "매칭", "중개", "인력", "채용"],
   authors: [{ name: "Helpernote Team" }],
   creator: "Helpernote",
   publisher: "Helpernote",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-  alternates: {
-    canonical: '/',
-  },
-  openGraph: {
-    title: "Helpernote - 소개소 관리 시스템",
-    description: "소개소를 위한 통합 고객 관리 및 매칭 플랫폼",
-    url: '/',
-    siteName: 'Helpernote',
-    locale: 'ko_KR',
-    type: 'website',
-    images: [
-      {
-        url: '/images/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Helpernote - 소개소 관리 시스템',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: "Helpernote - 소개소 관리 시스템",
-    description: "소개소를 위한 통합 고객 관리 및 매칭 플랫폼",
-    images: ['/images/og-image.png'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
   icons: {
-    icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/logo-icon.svg', sizes: '32x32', type: 'image/svg+xml' },
-    ],
-    apple: [
-      { url: '/logo-icon.svg', sizes: '180x180', type: 'image/svg+xml' },
-    ],
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
   },
-  manifest: '/manifest.json',
+  manifest: "/site.webmanifest",
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    title: "Helpernote - 취업 알선 중개 플랫폼",
+    description: "구인자와 구직자를 연결하는 전문 취업 알선 중개 서비스",
+    siteName: "Helpernote",
+  },
 };
 
 export default function RootLayout({
@@ -71,9 +37,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
-      <body className="antialiased">
-        {children}
+    <html lang="ko" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryProvider>{children}</QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

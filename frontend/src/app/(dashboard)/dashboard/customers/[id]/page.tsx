@@ -1,274 +1,240 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Customer, CustomerType } from '@/types/customer';
-import { customerApi } from '@/lib/customer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeft, Edit, Loader2, Phone, MapPin, Calendar, Plus, MessageSquare } from 'lucide-react';
-import apiClient from '@/lib/api';
-import { ProfilePhotoUpload } from '@/components/profile-photo-upload';
-
-interface CustomerMemo {
-  id: number;
-  customer_id: number;
-  memo_content: string;
-  created_by: number;
-  created_at: string;
-  updated_at: string;
-}
-
-const customerTypeLabels: Record<CustomerType, string> = {
-  Employer: '고용주',
-  Employee: '근로자',
-  Both: '양쪽',
-};
-
-const customerTypeVariants: Record<CustomerType, 'default' | 'secondary' | 'outline'> = {
-  Employer: 'default',
-  Employee: 'secondary',
-  Both: 'outline',
-};
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { customerApi } from "@/lib/customer";
+import { getErrorMessage } from "@/lib/api-client";
+import { Customer } from "@/types/customer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const customerId = parseInt(params.id as string);
   const { toast } = useToast();
+
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
-  const [memos, setMemos] = useState<CustomerMemo[]>([]);
-  const [newMemo, setNewMemo] = useState('');
-  const [addingMemo, setAddingMemo] = useState(false);
-  const [tags, setTags] = useState<{ id: number; name: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
 
-  const customer_id = params.id as string;
+  useEffect(() => {
+    loadCustomer();
+  }, [customerId]);
 
   const loadCustomer = async () => {
     try {
       setLoading(true);
-      const data = await customerApi.getById(parseInt(customer_id));
+      setError(null);
+      const data = await customerApi.getById(customerId);
       setCustomer(data);
-
-      // Load memos and tags
-      await Promise.all([loadMemos(), loadTags()]);
-    } catch (error) {
-      console.error('Failed to load customer:', error);
-      toast({
-        title: '오류',
-        description: '고객 정보를 불러오는데 실패했습니다.',
-        variant: 'destructive',
-      });
+    } catch (err) {
+      console.error("Failed to load customer:", err);
+      const errorMessage = getErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (customer_id) {
-      loadCustomer();
-    }
-  }, [customer_id, toast]);
-
-  const loadTags = async () => {
-    try {
-      const response = await apiClient.get(`/api/customers/${customer_id}/tags`);
-      setTags(response.data.tags || []);
-    } catch (error) {
-      console.error('Failed to load tags:', error);
-    }
+  const handleDelete = () => {
+    setDeleteItemId(customerId);
+    setDeleteDialogOpen(true);
   };
 
-  const loadMemos = async () => {
-    try {
-      const response = await apiClient.get(`/api/customers/${customer_id}/memos`);
-      setMemos(response.data.memos || []);
-    } catch (error) {
-      console.error('Failed to load memos:', error);
-    }
-  };
-
-  const handleAddMemo = async () => {
-    if (!newMemo.trim()) return;
+  const confirmDelete = async () => {
+    if (deleteItemId === null) return;
 
     try {
-      setAddingMemo(true);
-      await apiClient.post(`/api/customers/${customer_id}/memos`, {
-        customer_id: parseInt(customer_id),
-        memo_content: newMemo,
-      });
-      setNewMemo('');
-      await loadMemos();
+      await customerApi.delete(deleteItemId);
       toast({
-        title: '성공',
-        description: '메모가 추가되었습니다.',
+        title: "성공",
+        description: "고객이 삭제되었습니다.",
       });
-    } catch (error) {
-      console.error('Failed to add memo:', error);
+      router.push("/dashboard/customers");
+    } catch (err) {
+      console.error("Failed to delete customer:", err);
+      const errorMessage = getErrorMessage(err);
       toast({
-        title: '오류',
-        description: '메모 추가에 실패했습니다.',
-        variant: 'destructive',
+        variant: "destructive",
+        title: "오류",
+        description: errorMessage,
       });
     } finally {
-      setAddingMemo(false);
+      setDeleteDialogOpen(false);
+      setDeleteItemId(null);
     }
   };
 
-  const handleEdit = () => {
-    router.push(`/dashboard/customers/${customer_id}/edit`);
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "employer":
+        return "구인자";
+      case "employee":
+        return "구직자";
+      case "both":
+        return "구인/구직";
+      default:
+        return type;
+    }
   };
 
-  const handleBack = () => {
-    router.push('/dashboard/customers');
+  const getTypeBadgeVariant = (type: string) => {
+    switch (type) {
+      case "employer":
+        return "default";
+      case "employee":
+        return "secondary";
+      case "both":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("ko-KR");
+  };
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString("ko-KR");
   };
 
   if (loading) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex-1 space-y-6 p-6 md:p-8">
+        <div className="space-y-6">
+          <div>
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-72" />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {[1, 2].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32 mb-2" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="space-y-1">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-5 w-full" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-5 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
-  if (!customer) {
+  if (error || !customer) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-lg border bg-card p-8 text-center">
-          <p className="text-muted-foreground">고객을 찾을 수 없습니다.</p>
-          <Button onClick={handleBack} className="mt-4">
-            목록으로
-          </Button>
+      <div className="flex-1 space-y-6 p-6 md:p-8">
+        <div className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">
+          {error || "고객을 찾을 수 없습니다."}
         </div>
+        <Button onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          돌아가기
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 space-y-6 p-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            className="mb-2"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            목록으로
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight">{customer.name}</h1>
-          <p className="text-muted-foreground">
-            등록일: {new Date(customer.created_at).toLocaleDateString('ko-KR')}
-          </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">
+                {customer.name}
+              </h1>
+              <Badge variant={getTypeBadgeVariant(customer.customer_type)}>
+                {getTypeLabel(customer.customer_type)}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">고객 상세 정보</p>
+          </div>
         </div>
-        <Button onClick={handleEdit}>
-          <Edit className="mr-2 h-4 w-4" />
-          수정
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              router.push(`/dashboard/customers/${customerId}/edit`)
+            }
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            수정
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            삭제
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Profile Photo */}
-        <div className="md:col-span-1">
-          <ProfilePhotoUpload
-            customer_id={parseInt(customer_id)}
-            currentPhotoUrl={null}
-            customerName={customer.name}
-            onPhotoUploaded={() => {
-              // Reload customer data to get updated profile photo
-              loadCustomer();
-            }}
-          />
-        </div>
-
-        <Card className="md:col-span-2">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle>기본 정보</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">고객 유형</span>
-              <Badge variant={customerTypeVariants[customer.customer_type]}>
-                {customerTypeLabels[customer.customer_type]}
-              </Badge>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">이름</p>
+              <p className="text-base">{customer.name}</p>
             </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Phone className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">전화번호</p>
-                  <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                </div>
-              </div>
-
-              {customer.birth_date && (
-                <div className="flex items-start gap-3">
-                  <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">생년월일</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(customer.birth_date).toLocaleDateString('ko-KR')}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {customer.profile_photo_id && (
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">프로필 사진 ID</p>
-                    <p className="text-sm text-muted-foreground">{customer.profile_photo_id}</p>
-                  </div>
-                </div>
-              )}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">생년월일</p>
+              <p className="text-base">{formatDate(customer.birth_date)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">고객 유형</p>
+              <Badge variant={getTypeBadgeVariant(customer.customer_type)}>
+                {getTypeLabel(customer.customer_type)}
+              </Badge>
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-6 md:grid-cols-1">
         <Card>
           <CardHeader>
-            <CardTitle>주소 및 태그</CardTitle>
+            <CardTitle>연락처 정보</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm font-medium mb-2">주소</p>
-              {customer.address ? (
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm">{customer.address}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">주소 정보가 없습니다.</p>
-              )}
+              <p className="text-sm font-medium text-muted-foreground">전화번호</p>
+              <p className="text-base">{customer.phone}</p>
             </div>
-
-            <Separator />
-
             <div>
-              <p className="text-sm font-medium mb-2">태그</p>
-              {tags.length === 0 ? (
-                <p className="text-sm text-muted-foreground">연결된 태그가 없습니다.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Badge key={tag.id} variant="secondary">
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              <p className="text-sm font-medium text-muted-foreground">주소</p>
+              <p className="text-base">{customer.address || "-"}</p>
             </div>
           </CardContent>
         </Card>
@@ -276,65 +242,35 @@ export default function CustomerDetailPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              메모
-            </CardTitle>
-          </div>
+          <CardTitle>시스템 정보</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Add new memo */}
-          <div className="space-y-2">
-            <Textarea
-              placeholder="새 메모를 입력하세요..."
-              value={newMemo}
-              onChange={(e) => setNewMemo(e.target.value)}
-              className="min-h-[80px]"
-            />
-            <Button
-              onClick={handleAddMemo}
-              disabled={!newMemo.trim() || addingMemo}
-              size="sm"
-            >
-              {addingMemo ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  추가 중...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  메모 추가
-                </>
-              )}
-            </Button>
+        <CardContent className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">고객 ID</span>
+            <span>#{customer.id}</span>
           </div>
-
-          <Separator />
-
-          {/* Memos list */}
-          <div className="space-y-3">
-            {memos.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                등록된 메모가 없습니다
-              </p>
-            ) : (
-              memos.map((memo) => (
-                <div
-                  key={memo.id}
-                  className="border rounded-lg p-3 space-y-2"
-                >
-                  <p className="text-sm whitespace-pre-wrap">{memo.memo_content}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(memo.created_at).toLocaleString('ko-KR')}
-                  </p>
-                </div>
-              ))
-            )}
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">사용자 ID</span>
+            <span>#{customer.user_id}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">생성일</span>
+            <span>{formatDateTime(customer.created_at)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">수정일</span>
+            <span>{formatDateTime(customer.updated_at)}</span>
           </div>
         </CardContent>
       </Card>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDelete}
+        title="고객 삭제"
+        description="정말 이 고객을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+      />
     </div>
   );
 }

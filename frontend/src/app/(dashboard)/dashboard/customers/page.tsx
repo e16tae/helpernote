@@ -1,38 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Customer, CustomerType } from '@/types/customer';
-import { customerApi } from '@/lib/customer';
-import { tagApi } from '@/lib/tag';
-import type { Tag } from '@/types/tag';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
-import { Plus, Loader2, Eye, Pencil, Trash2, Filter, X, Users } from 'lucide-react';
-import { getErrorMessage, getErrorTitle } from '@/lib/error-handler';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getErrorMessage } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -40,410 +13,291 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/use-pagination";
+import { useCustomers, useDeleteCustomer } from "@/hooks/queries/use-customers";
 
 export default function CustomersPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [customerType, setCustomerType] = useState<CustomerType | 'ALL'>('ALL');
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean;
-    customer: Customer | null;
-  }>({ open: false, customer: null });
-  const [deleting, setDeleting] = useState(false);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-  const [tagsOpen, setTagsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteCustomerId, setDeleteCustomerId] = useState<number | null>(null);
 
-  const loadCustomers = async () => {
-    try {
-      setLoading(true);
+  // React Query hooks
+  const { data: customers = [], isLoading, error } = useCustomers();
+  const deleteMutation = useDeleteCustomer();
 
-      let response;
-      if (search) {
-        // Use search API
-        response = await customerApi.search({
-          q: search,
-          limit: 20,
-          offset: (page - 1) * 20,
+  const handleDelete = (customerId: number) => {
+    setDeleteCustomerId(customerId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteCustomerId === null) return;
+
+    deleteMutation.mutate(deleteCustomerId, {
+      onSuccess: () => {
+        toast({
+          title: "성공",
+          description: "고객이 삭제되었습니다.",
         });
-      } else {
-        // Use list API
-        response = await customerApi.list({
-          customer_type: customerType !== 'ALL' ? customerType : undefined,
-          tag_ids: selectedTagIds.length > 0 ? selectedTagIds.join(',') : undefined,
-          limit: 20,
-          offset: (page - 1) * 20,
+        setDeleteDialogOpen(false);
+        setDeleteCustomerId(null);
+      },
+      onError: (err) => {
+        const errorMessage = getErrorMessage(err);
+        toast({
+          variant: "destructive",
+          title: "오류",
+          description: errorMessage,
         });
-      }
+        setDeleteDialogOpen(false);
+        setDeleteCustomerId(null);
+      },
+    });
+  };
 
-      setCustomers(response.customers);
-      setTotal(response.total);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-      toast({
-        title: getErrorTitle(error),
-        description: getErrorMessage(error),
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+  const filteredCustomers = customers.filter((customer) => {
+    const matchesSearch =
+      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.phone.includes(searchQuery) ||
+      customer.address?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesType =
+      filterType === "all" || customer.customer_type === filterType;
+
+    return matchesSearch && matchesType;
+  });
+
+  // Pagination
+  const {
+    paginatedItems: paginatedCustomers,
+    currentPage,
+    totalPages,
+    setCurrentPage,
+  } = usePagination({
+    items: filteredCustomers,
+    itemsPerPage: 10,
+    resetDependencies: [searchQuery, filterType],
+  });
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "Employer":
+        return "구인자";
+      case "Employee":
+        return "구직자";
+      case "Both":
+        return "구인/구직";
+      default:
+        return type;
     }
   };
 
-  const loadTags = async () => {
-    try {
-      const response = await tagApi.list();
-      setTags(response.tags);
-    } catch (error) {
-      console.error('Failed to load tags:', error);
+  const getTypeBadgeVariant = (type: string) => {
+    switch (type) {
+      case "Employer":
+        return "default";
+      case "Employee":
+        return "secondary";
+      case "Both":
+        return "outline";
+      default:
+        return "outline";
     }
   };
 
-  useEffect(() => {
-    loadTags();
-  }, []);
-
-  useEffect(() => {
-    loadCustomers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, customerType, selectedTagIds, page]);
-
-  const handleView = (customer: Customer) => {
-    router.push(`/dashboard/customers/${customer.id}`);
-  };
-
-  const handleEdit = (customer: Customer) => {
-    router.push(`/dashboard/customers/${customer.id}/edit`);
-  };
-
-  const handleDeleteClick = (customer: Customer) => {
-    setDeleteDialog({ open: true, customer });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteDialog.customer) return;
-
-    try {
-      setDeleting(true);
-      await customerApi.delete(deleteDialog.customer.id);
-      toast({
-        title: '성공',
-        description: '고객이 삭제되었습니다.',
-      });
-      setDeleteDialog({ open: false, customer: null });
-      loadCustomers();
-    } catch (error) {
-      console.error('Failed to delete customer:', error);
-      toast({
-        title: getErrorTitle(error),
-        description: getErrorMessage(error),
-        variant: 'destructive',
-      });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleCreateNew = () => {
-    router.push('/dashboard/customers/new');
-  };
-
-  const handleToggleTag = (tagId: number) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
-    );
-    setPage(1); // Reset to first page when filter changes
-  };
-
-  const handleClearTagFilters = () => {
-    setSelectedTagIds([]);
-    setPage(1);
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("ko-KR");
   };
 
   return (
-    <div className="space-y-8">
+    <div className="flex-1 space-y-6 p-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
+        <div>
           <h1 className="text-3xl font-bold tracking-tight">고객 관리</h1>
           <p className="text-muted-foreground">
-            등록된 고객 정보를 관리합니다
+            구인자와 구직자를 관리합니다.
           </p>
         </div>
-        <Button onClick={handleCreateNew} size="lg">
+        <Button onClick={() => router.push("/dashboard/customers/new")}>
           <Plus className="mr-2 h-4 w-4" />
-          새 고객 등록
+          새 고객 추가
         </Button>
       </div>
 
-      <Card className="border-2">
-        <CardContent className="pt-6">
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <Input
-                placeholder="고객 이름 또는 전화번호로 검색..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Select
-              value={customerType}
-              onValueChange={(value) => setCustomerType(value as CustomerType | 'ALL')}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">전체</SelectItem>
-                <SelectItem value="employer">고용주</SelectItem>
-                <SelectItem value="employee">근로자</SelectItem>
-                <SelectItem value="both">양쪽</SelectItem>
-              </SelectContent>
-            </Select>
-            <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[200px] justify-start">
-                  <Filter className="mr-2 h-4 w-4" />
-                  태그 필터
-                  {selectedTagIds.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto">
-                      {selectedTagIds.length}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[250px] p-0" align="start">
-                <div className="p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm">태그 선택</h4>
-                    {selectedTagIds.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearTagFilters}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {tags.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        태그가 없습니다
-                      </p>
-                    ) : (
-                      tags.map((tag) => (
-                        <div
-                          key={tag.id}
-                          className="flex items-center space-x-2 hover:bg-accent rounded-md p-2 cursor-pointer"
-                          onClick={() => handleToggleTag(tag.id)}
-                        >
-                          <Checkbox
-                            checked={selectedTagIds.includes(tag.id)}
-                            onCheckedChange={() => handleToggleTag(tag.id)}
-                          />
-                          <Badge
-                            variant="secondary"
-                            style={{
-                              backgroundColor: tag.color ? `${tag.color}20` : undefined,
-                              color: tag.color || undefined,
-                              borderColor: tag.color || undefined,
-                            }}
-                            className="flex-1"
-                          >
-                            {tag.name}
-                          </Badge>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-          {selectedTagIds.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              <span className="text-sm text-muted-foreground">선택된 태그:</span>
-              {selectedTagIds.map((tagId) => {
-                const tag = tags.find((t) => t.id === tagId);
-                if (!tag) return null;
-                return (
-                  <Badge
-                    key={tag.id}
-                    variant="secondary"
-                    style={{
-                      backgroundColor: tag.color ? `${tag.color}20` : undefined,
-                      color: tag.color || undefined,
-                      borderColor: tag.color || undefined,
-                    }}
-                    className="cursor-pointer"
-                    onClick={() => handleToggleTag(tag.id)}
-                  >
-                    {tag.name}
-                    <X className="ml-1 h-3 w-3" />
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="이름, 전화번호, 주소로 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="유형 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            <SelectItem value="Employer">구인자</SelectItem>
+            <SelectItem value="Employee">구직자</SelectItem>
+            <SelectItem value="Both">구인/구직</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      {loading ? (
-        <Card className="border-2">
-          <CardContent className="flex items-center justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <Card className="border-2">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-semibold">이름</TableHead>
-                    <TableHead className="font-semibold">전화번호</TableHead>
-                    <TableHead className="font-semibold">고객 유형</TableHead>
-                    <TableHead className="font-semibold">주소</TableHead>
-                    <TableHead className="font-semibold">등록일</TableHead>
-                    <TableHead className="text-right font-semibold">작업</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.length === 0 ? (
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                        <div className="flex flex-col items-center gap-2">
-                          <Users className="h-10 w-10 text-muted-foreground/50" />
-                          <p>등록된 고객이 없습니다</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    customers.map((customer) => (
-                      <TableRow
-                        key={customer.id}
-                        className="hover:bg-accent/50 transition-colors"
-                      >
-                        <TableCell className="font-medium">{customer.name}</TableCell>
-                        <TableCell>{customer.phone}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="font-medium">
-                            {customer.customer_type === 'Employer' && '고용주'}
-                            {customer.customer_type === 'Employee' && '근로자'}
-                            {customer.customer_type === 'Both' && '양쪽'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">{customer.address || '-'}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(customer.created_at).toLocaleDateString('ko-KR')}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleView(customer)}
-                              className="hover:bg-primary/10 hover:text-primary"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(customer)}
-                              className="hover:bg-primary/10 hover:text-primary"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteClick(customer)}
-                              className="hover:bg-destructive/10 hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {total > 20 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                이전
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {page} / {Math.ceil(total / 20)}
-              </span>
-              <Button
-                variant="outline"
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page >= Math.ceil(total / 20)}
-              >
-                다음
-              </Button>
-            </div>
-          )}
-        </>
+      {error && (
+        <div className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">
+          {getErrorMessage(error)}
+        </div>
       )}
 
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => !deleting && setDeleteDialog({ open, customer: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>고객 삭제</DialogTitle>
-            <DialogDescription>
-              정말로 {deleteDialog.customer?.name} 고객을 삭제하시겠습니까?
-              이 작업은 되돌릴 수 없습니다.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialog({ open: false, customer: null })}
-              disabled={deleting}
-            >
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  삭제 중...
-                </>
+      {isLoading ? (
+        <div className="space-y-6">
+          {/* Header skeleton */}
+          <div>
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-72" />
+          </div>
+
+          {/* Search/Filter skeleton */}
+          <div className="flex gap-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-[180px]" />
+          </div>
+
+          {/* Table skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>이름</TableHead>
+                <TableHead>유형</TableHead>
+                <TableHead>생년월일</TableHead>
+                <TableHead>연락처</TableHead>
+                <TableHead>주소</TableHead>
+                <TableHead>등록일</TableHead>
+                <TableHead className="text-right">작업</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedCustomers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="h-64 text-center text-muted-foreground"
+                  >
+                    고객이 없습니다.
+                  </TableCell>
+                </TableRow>
               ) : (
-                '삭제'
+                paginatedCustomers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">
+                      {customer.name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getTypeBadgeVariant(customer.customer_type)}>
+                        {getTypeLabel(customer.customer_type)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(customer.birth_date)}</TableCell>
+                    <TableCell>{customer.phone}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {customer.address || "-"}
+                    </TableCell>
+                    <TableCell>{formatDate(customer.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            router.push(`/dashboard/customers/${customer.id}`)
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            router.push(
+                              `/dashboard/customers/${customer.id}/edit`
+                            )
+                          }
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(customer.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          총 {filteredCustomers.length}명의 고객 (페이지 {currentPage} / {totalPages || 1})
+        </p>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDelete}
+        title="고객 삭제"
+        description="정말 이 고객을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+      />
     </div>
   );
 }

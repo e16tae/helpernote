@@ -1,134 +1,93 @@
-export type PostingStatus = 'published' | 'in_progress' | 'closed' | 'cancelled';
-export type SettlementStatus = 'unsettled' | 'settled';
+export type PostingStatus = "Published" | "InProgress" | "Closed" | "Cancelled";
+export type SettlementStatus = "Unsettled" | "Settled";
 
-// Runtime constants for PostingStatus
-export const POSTING_STATUS = {
-  published: 'published' as const,
-  in_progress: 'in_progress' as const,
-  closed: 'closed' as const,
-  cancelled: 'cancelled' as const,
-} as const;
-
-export const POSTING_STATUS_LABELS: Record<PostingStatus, string> = {
-  published: '공개',
-  in_progress: '진행중',
-  closed: '마감',
-  cancelled: '취소됨',
-};
-
-// Job Posting (구인 공고)
 export interface JobPosting {
   id: number;
   customer_id: number;
-  salary: string; // Decimal as string
+  salary: number;
   description: string;
-  employer_fee_rate?: string; // Decimal as string
+  employer_fee_rate: number | null;
   settlement_status: SettlementStatus;
-  settlement_amount?: string; // Decimal as string
-  settlement_memo?: string;
+  settlement_amount: number | null;
+  settlement_memo: string | null;
   posting_status: PostingStatus;
   is_favorite: boolean;
   created_at: string;
   updated_at: string;
-  deleted_at?: string;
+  deleted_at: string | null;
+}
+
+export interface JobSeekingPosting {
+  id: number;
+  customer_id: number;
+  desired_salary: number;
+  description: string;
+  preferred_location: string;
+  employee_fee_rate: number | null;
+  settlement_status: SettlementStatus;
+  settlement_amount: number | null;
+  settlement_memo: string | null;
+  posting_status: PostingStatus;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface JobPostingMemo {
+  id: number;
+  job_posting_id: number;
+  memo_content: string;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface JobSeekingMemo {
+  id: number;
+  job_seeking_posting_id: number;
+  memo_content: string;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface CreateJobPostingRequest {
   customer_id: number;
-  salary: string; // Decimal as string
+  salary: number;
   description: string;
-  employer_fee_rate?: string; // Decimal as string
+  employer_fee_rate?: number | null;
 }
 
 export interface UpdateJobPostingRequest {
-  salary?: string; // Decimal as string
+  salary?: number;
   description?: string;
-  employer_fee_rate?: string; // Decimal as string
+  employer_fee_rate?: number | null;
   settlement_status?: SettlementStatus;
-  settlement_amount?: string; // Decimal as string
-  settlement_memo?: string;
+  settlement_amount?: number | null;
+  settlement_memo?: string | null;
   posting_status?: PostingStatus;
   is_favorite?: boolean;
 }
 
-// Job Seeking Posting (구직 공고)
-export interface JobSeekingPosting {
-  id: number;
+export interface CreateJobSeekingRequest {
   customer_id: number;
-  desired_salary: string; // Decimal as string
+  desired_salary: number;
   description: string;
   preferred_location: string;
-  employee_fee_rate?: string; // Decimal as string
-  settlement_status: SettlementStatus;
-  settlement_amount?: string; // Decimal as string
-  settlement_memo?: string;
-  posting_status: PostingStatus;
-  is_favorite: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string;
+  employee_fee_rate?: number | null;
 }
 
-export interface CreateJobSeekingPostingRequest {
-  customer_id: number;
-  desired_salary: string; // Decimal as string
-  description: string;
-  preferred_location: string;
-  employee_fee_rate?: string; // Decimal as string
-}
-
-export interface UpdateJobSeekingPostingRequest {
-  desired_salary?: string; // Decimal as string
+export interface UpdateJobSeekingRequest {
+  desired_salary?: number;
   description?: string;
   preferred_location?: string;
-  employee_fee_rate?: string; // Decimal as string
+  employee_fee_rate?: number | null;
   settlement_status?: SettlementStatus;
-  settlement_amount?: string; // Decimal as string
-  settlement_memo?: string;
+  settlement_amount?: number | null;
+  settlement_memo?: string | null;
   posting_status?: PostingStatus;
   is_favorite?: boolean;
 }
-
-// API Response types
-export interface JobPostingResponse {
-  job_posting: JobPosting;
-}
-
-export interface JobPostingsListResponse {
-  job_postings: JobPosting[];
-  total: number;
-}
-
-export interface JobSeekingResponse {
-  job_seeking: JobSeekingPosting;
-}
-
-export interface JobSeekingsListResponse {
-  job_seekings: JobSeekingPosting[];
-  total: number;
-}
-
-// Query parameters
-export interface ListJobPostingsQuery {
-  status?: PostingStatus;
-  settlement_status?: SettlementStatus;
-  is_favorite?: boolean;
-  search?: string;
-  workType?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface ListJobSeekingsQuery {
-  status?: PostingStatus;
-  settlement_status?: SettlementStatus;
-  preferred_location?: string;
-  limit?: number;
-  offset?: number;
-}
-
-// Type aliases for compatibility
-export type JobSeeking = JobSeekingPosting;
-export type JobSeekingFormData = CreateJobSeekingPostingRequest;
-export type JobPostingFormData = CreateJobPostingRequest;
-export type JobPostingFilters = ListJobPostingsQuery;
