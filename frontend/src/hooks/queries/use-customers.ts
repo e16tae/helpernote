@@ -32,14 +32,38 @@ export function useCreateCustomer() {
   });
 }
 
-// Update customer
+// Update customer with optimistic update
 export function useUpdateCustomer() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ customerId, data }: { customerId: number; data: UpdateCustomerRequest }) =>
       customerApi.update(customerId, data),
-    onSuccess: (_, variables) => {
+    onMutate: async ({ customerId, data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.customers.detail(customerId) });
+
+      // Snapshot previous value
+      const previousCustomer = queryClient.getQueryData(queryKeys.customers.detail(customerId));
+
+      // Optimistically update
+      queryClient.setQueryData(queryKeys.customers.detail(customerId), (old: any) => ({
+        ...old,
+        ...data,
+      }));
+
+      return { previousCustomer };
+    },
+    onError: (_err, variables, context) => {
+      // Rollback on error
+      if (context?.previousCustomer) {
+        queryClient.setQueryData(
+          queryKeys.customers.detail(variables.customerId),
+          context.previousCustomer
+        );
+      }
+    },
+    onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.detail(variables.customerId) });
     },

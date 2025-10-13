@@ -8,6 +8,7 @@ import { Customer, UpdateCustomerRequest } from "@/types/customer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatPhoneNumber, unformatPhoneNumber, isValidPhoneNumber } from "@/lib/utils/phone";
 import {
   Select,
   SelectContent,
@@ -113,6 +114,14 @@ export default function EditCustomerPage() {
     setFormData((prev) => ({
       ...prev,
       [field]: value || null,
+    }));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setFormData((prev) => ({
+      ...prev,
+      phone: formatted,
     }));
   };
 
@@ -237,6 +246,7 @@ export default function EditCustomerPage() {
                     onChange={(e) =>
                       handleChange("birth_date", e.target.value)
                     }
+                    max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
 
@@ -247,7 +257,7 @@ export default function EditCustomerPage() {
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => handleChange("phone", e.target.value)}
+                    onChange={handlePhoneChange}
                     placeholder="010-1234-5678"
                     type="tel"
                     required
