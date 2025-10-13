@@ -48,7 +48,7 @@ rust-s3 = "0.37"
 validator = { version = "0.20", features = ["derive"] }
 
 # Rate limiting
-tower_governor = "0.4"
+tower_governor = "0.8"
 
 [dev-dependencies]
 # Testing
