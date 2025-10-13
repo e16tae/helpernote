@@ -181,6 +181,19 @@ async fn main() {
             "/api/job-postings/{id}/favorite",
             post(handlers::job_posting::toggle_favorite),
         )
+        // Job posting tags
+        .route(
+            "/api/job-postings/{id}/tags",
+            post(handlers::tag::attach_job_posting_tags),
+        )
+        .route(
+            "/api/job-postings/{id}/tags",
+            get(handlers::tag::list_job_posting_tags),
+        )
+        .route(
+            "/api/job-postings/{id}/tags/{tag_id}",
+            delete(handlers::tag::detach_job_posting_tag),
+        )
         // Job seeking routes
         .route(
             "/api/job-seekings",
@@ -205,6 +218,23 @@ async fn main() {
         .route(
             "/api/job-seekings/{id}/settlement",
             put(handlers::settlement::update_job_seeking_settlement),
+        )
+        .route(
+            "/api/job-seekings/{id}/favorite",
+            post(handlers::job_seeking::toggle_favorite),
+        )
+        // Job seeking tags
+        .route(
+            "/api/job-seekings/{id}/tags",
+            post(handlers::tag::attach_job_seeking_tags),
+        )
+        .route(
+            "/api/job-seekings/{id}/tags",
+            get(handlers::tag::list_job_seeking_tags),
+        )
+        .route(
+            "/api/job-seekings/{id}/tags/{tag_id}",
+            delete(handlers::tag::detach_job_seeking_tag),
         )
         // Matching routes
         .route("/api/matchings", post(handlers::matching::create_matching))

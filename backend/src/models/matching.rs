@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
+#[serde(rename_all = "PascalCase")]
 pub enum MatchingStatus {
     #[sqlx(rename = "in_progress")]
+    #[serde(rename = "InProgress")]
     InProgress,
     #[sqlx(rename = "completed")]
     Completed,

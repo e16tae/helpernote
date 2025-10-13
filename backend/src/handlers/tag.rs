@@ -322,3 +322,411 @@ pub async fn list_customer_tags(
 
     Ok(Json(TagsListResponse { tags, total }))
 }
+
+// ========================================
+// Job Posting Tags  
+// ========================================
+
+/// Attach tags to job posting
+pub async fn attach_job_posting_tags(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    Path(job_posting_id): Path<i64>,
+    Json(payload): Json<AttachTagsRequest>,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
+    use crate::repositories::job_posting;
+
+    // Verify the job posting belongs to the user (via customer ownership)
+    let posting = job_posting::get_job_posting_by_id(&pool, job_posting_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "구인 공고를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("구인 공고 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    // Verify customer ownership
+    customer::get_customer_by_id(&pool, posting.customer_id, user.user_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: "접근 권한이 없습니다".to_string(),
+                }),
+            )
+        })?;
+
+    // Verify all tags belong to the user
+    for tag_id in &payload.tag_ids {
+        tag::get_tag_by_id(&pool, *tag_id, user.user_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => (
+                    StatusCode::NOT_FOUND,
+                    Json(ErrorResponse {
+                        error: format!("태그 ID {}를 찾을 수 없습니다", tag_id),
+                    }),
+                ),
+                _ => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("태그 확인 실패: {}", e),
+                    }),
+                ),
+            })?;
+    }
+
+    // Attach tags
+    tag::batch_attach_tags_to_job_posting(&pool, job_posting_id, &payload.tag_ids)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 연결 실패: {}", e),
+                }),
+            )
+        })?;
+
+    Ok(Json(SuccessResponse {
+        message: "태그가 성공적으로 연결되었습니다".to_string(),
+    }))
+}
+
+/// Detach tag from job posting
+pub async fn detach_job_posting_tag(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    Path((job_posting_id, tag_id)): Path<(i64, i64)>,
+) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
+    use crate::repositories::job_posting;
+
+    // Verify the job posting belongs to the user (via customer ownership)
+    let posting = job_posting::get_job_posting_by_id(&pool, job_posting_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "구인 공고를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("구인 공고 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    // Verify customer ownership
+    customer::get_customer_by_id(&pool, posting.customer_id, user.user_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: "접근 권한이 없습니다".to_string(),
+                }),
+            )
+        })?;
+
+    // Verify the tag belongs to the user
+    tag::get_tag_by_id(&pool, tag_id, user.user_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "태그를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    tag::detach_tag_from_job_posting(&pool, job_posting_id, tag_id)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 연결 해제 실패: {}", e),
+                }),
+            )
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// List job posting tags
+pub async fn list_job_posting_tags(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    Path(job_posting_id): Path<i64>,
+) -> Result<Json<TagsListResponse>, (StatusCode, Json<ErrorResponse>)> {
+    use crate::repositories::job_posting;
+
+    // Verify the job posting belongs to the user (via customer ownership)
+    let posting = job_posting::get_job_posting_by_id(&pool, job_posting_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "구인 공고를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("구인 공고 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    // Verify customer ownership
+    customer::get_customer_by_id(&pool, posting.customer_id, user.user_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: "접근 권한이 없습니다".to_string(),
+                }),
+            )
+        })?;
+
+    let tags = tag::list_job_posting_tags(&pool, job_posting_id)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 목록 조회 실패: {}", e),
+                }),
+            )
+        })?;
+
+    let total = tags.len();
+
+    Ok(Json(TagsListResponse { tags, total }))
+}
+
+// ========================================
+// Job Seeking Tags
+// ========================================
+
+/// Attach tags to job seeking posting
+pub async fn attach_job_seeking_tags(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    Path(job_seeking_id): Path<i64>,
+    Json(payload): Json<AttachTagsRequest>,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
+    use crate::repositories::job_seeking;
+
+    // Verify the job seeking posting belongs to the user (via customer ownership)
+    let seeking = job_seeking::get_job_seeking_posting_by_id(&pool, job_seeking_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "구직 공고를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("구직 공고 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    // Verify customer ownership
+    customer::get_customer_by_id(&pool, seeking.customer_id, user.user_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: "접근 권한이 없습니다".to_string(),
+                }),
+            )
+        })?;
+
+    // Verify all tags belong to the user
+    for tag_id in &payload.tag_ids {
+        tag::get_tag_by_id(&pool, *tag_id, user.user_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => (
+                    StatusCode::NOT_FOUND,
+                    Json(ErrorResponse {
+                        error: format!("태그 ID {}를 찾을 수 없습니다", tag_id),
+                    }),
+                ),
+                _ => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("태그 확인 실패: {}", e),
+                    }),
+                ),
+            })?;
+    }
+
+    // Attach tags
+    tag::batch_attach_tags_to_job_seeking_posting(&pool, job_seeking_id, &payload.tag_ids)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 연결 실패: {}", e),
+                }),
+            )
+        })?;
+
+    Ok(Json(SuccessResponse {
+        message: "태그가 성공적으로 연결되었습니다".to_string(),
+    }))
+}
+
+/// Detach tag from job seeking posting
+pub async fn detach_job_seeking_tag(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    Path((job_seeking_id, tag_id)): Path<(i64, i64)>,
+) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
+    use crate::repositories::job_seeking;
+
+    // Verify the job seeking posting belongs to the user (via customer ownership)
+    let seeking = job_seeking::get_job_seeking_posting_by_id(&pool, job_seeking_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "구직 공고를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("구직 공고 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    // Verify customer ownership
+    customer::get_customer_by_id(&pool, seeking.customer_id, user.user_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: "접근 권한이 없습니다".to_string(),
+                }),
+            )
+        })?;
+
+    // Verify the tag belongs to the user
+    tag::get_tag_by_id(&pool, tag_id, user.user_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "태그를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    tag::detach_tag_from_job_seeking_posting(&pool, job_seeking_id, tag_id)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 연결 해제 실패: {}", e),
+                }),
+            )
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// List job seeking posting tags
+pub async fn list_job_seeking_tags(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    Path(job_seeking_id): Path<i64>,
+) -> Result<Json<TagsListResponse>, (StatusCode, Json<ErrorResponse>)> {
+    use crate::repositories::job_seeking;
+
+    // Verify the job seeking posting belongs to the user (via customer ownership)
+    let seeking = job_seeking::get_job_seeking_posting_by_id(&pool, job_seeking_id)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "구직 공고를 찾을 수 없습니다".to_string(),
+                }),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("구직 공고 확인 실패: {}", e),
+                }),
+            ),
+        })?;
+
+    // Verify customer ownership
+    customer::get_customer_by_id(&pool, seeking.customer_id, user.user_id)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: "접근 권한이 없습니다".to_string(),
+                }),
+            )
+        })?;
+
+    let tags = tag::list_job_seeking_posting_tags(&pool, job_seeking_id)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("태그 목록 조회 실패: {}", e),
+                }),
+            )
+        })?;
+
+    let total = tags.len();
+
+    Ok(Json(TagsListResponse { tags, total }))
+}
