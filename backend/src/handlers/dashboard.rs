@@ -1,7 +1,7 @@
 use axum::{extract::State, http::StatusCode, Json};
 use rust_decimal::Decimal;
 use serde::Serialize;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 use crate::middleware::auth::AuthUser;
 
@@ -26,14 +26,14 @@ pub async fn get_dashboard_stats(
     State(pool): State<PgPool>,
 ) -> Result<Json<DashboardStatsResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Get customer count
-    let customer_count = sqlx::query_scalar!(
+    let customer_count: i64 = sqlx::query_scalar(
         r#"
         SELECT COUNT(*)
         FROM customers
         WHERE user_id = $1 AND deleted_at IS NULL
-        "#,
-        user.user_id
+        "#
     )
+    .bind(user.user_id)
     .fetch_one(&pool)
     .await
     .map_err(|e| {
@@ -43,19 +43,18 @@ pub async fn get_dashboard_stats(
                 error: format!("고객 수 조회 실패: {}", e),
             }),
         )
-    })?
-    .unwrap_or(0);
+    })?;
 
     // Get job postings count
-    let job_postings_count = sqlx::query_scalar!(
+    let job_postings_count: i64 = sqlx::query_scalar(
         r#"
         SELECT COUNT(*)
         FROM job_postings jp
         INNER JOIN customers c ON jp.customer_id = c.id
         WHERE c.user_id = $1 AND jp.deleted_at IS NULL AND c.deleted_at IS NULL
-        "#,
-        user.user_id
+        "#
     )
+    .bind(user.user_id)
     .fetch_one(&pool)
     .await
     .map_err(|e| {
@@ -65,19 +64,18 @@ pub async fn get_dashboard_stats(
                 error: format!("구인 공고 수 조회 실패: {}", e),
             }),
         )
-    })?
-    .unwrap_or(0);
+    })?;
 
     // Get job seekings count
-    let job_seekings_count = sqlx::query_scalar!(
+    let job_seekings_count: i64 = sqlx::query_scalar(
         r#"
         SELECT COUNT(*)
         FROM job_seeking_postings jsp
         INNER JOIN customers c ON jsp.customer_id = c.id
         WHERE c.user_id = $1 AND jsp.deleted_at IS NULL AND c.deleted_at IS NULL
-        "#,
-        user.user_id
+        "#
     )
+    .bind(user.user_id)
     .fetch_one(&pool)
     .await
     .map_err(|e| {
@@ -87,17 +85,16 @@ pub async fn get_dashboard_stats(
                 error: format!("구직 공고 수 조회 실패: {}", e),
             }),
         )
-    })?
-    .unwrap_or(0);
+    })?;
 
     // Get matchings count and revenue statistics
-    let stats = sqlx::query!(
+    let stats = sqlx::query(
         r#"
         SELECT
-            COUNT(*) as "count!",
+            COUNT(*) as count,
             COALESCE(SUM(
                 COALESCE(m.employer_fee_amount, 0) + COALESCE(m.employee_fee_amount, 0)
-            ), 0) as "total_revenue!",
+            ), 0) as total_revenue,
             COALESCE(SUM(
                 CASE
                     WHEN jp.settlement_status = 'unsettled' THEN COALESCE(m.employer_fee_amount, 0)
@@ -107,7 +104,7 @@ pub async fn get_dashboard_stats(
                     WHEN jsp.settlement_status = 'unsettled' THEN COALESCE(m.employee_fee_amount, 0)
                     ELSE 0
                 END
-            ), 0) as "pending_amount!"
+            ), 0) as pending_amount
         FROM matchings m
         INNER JOIN job_postings jp ON m.job_posting_id = jp.id
         INNER JOIN job_seeking_postings jsp ON m.job_seeking_posting_id = jsp.id
@@ -117,9 +114,9 @@ pub async fn get_dashboard_stats(
             AND jp.deleted_at IS NULL
             AND jsp.deleted_at IS NULL
             AND c1.deleted_at IS NULL
-        "#,
-        user.user_id
+        "#
     )
+    .bind(user.user_id)
     .fetch_one(&pool)
     .await
     .map_err(|e| {
@@ -131,12 +128,16 @@ pub async fn get_dashboard_stats(
         )
     })?;
 
+    let matchings_count: i64 = stats.try_get("count").unwrap_or(0);
+    let total_revenue: Decimal = stats.try_get("total_revenue").unwrap_or_else(|_| Decimal::ZERO);
+    let pending_amount: Decimal = stats.try_get("pending_amount").unwrap_or_else(|_| Decimal::ZERO);
+
     Ok(Json(DashboardStatsResponse {
         total_customers: customer_count,
         job_postings_count,
         job_seekings_count,
-        matchings_count: stats.count,
-        pending_amount: stats.pending_amount,
-        total_revenue: stats.total_revenue,
+        matchings_count,
+        pending_amount,
+        total_revenue,
     }))
 }
