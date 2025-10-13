@@ -16,6 +16,7 @@ import { Customer } from "@/types/customer";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MemoList } from "@/components/memos/MemoList";
 
 const matchingStatusMap = {
   InProgress: { label: "진행중", variant: "secondary" as const },
@@ -391,6 +392,20 @@ export default function MatchingDetailPage() {
               <span>{formatDateTime(matching.cancelled_at)}</span>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>메모</CardTitle>
+          <CardDescription>매칭 진행 과정에 대한 메모를 작성하고 관리합니다</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MemoList
+            entityType="matching"
+            entityId={parseInt(id)}
+            endpoint={`/api/matchings/${id}/memos`}
+          />
         </CardContent>
       </Card>
 

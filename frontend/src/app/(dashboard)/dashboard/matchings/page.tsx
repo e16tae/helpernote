@@ -6,11 +6,9 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api-client";
 import { MatchingStatus } from "@/types/matching";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +21,7 @@ import { useCustomers } from "@/hooks/queries/use-customers";
 import { useJobPostings } from "@/hooks/queries/use-job-postings";
 import { useJobSeekings } from "@/hooks/queries/use-job-seekings";
 import { useMatchings, useDeleteMatching } from "@/hooks/queries/use-matchings";
+import { ResponsiveDataList, Column } from "@/components/ui/responsive-data-list";
 
 const matchingStatusMap: Record<MatchingStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
   InProgress: { label: "진행중", variant: "secondary" },
@@ -131,6 +130,144 @@ export default function MatchingsPage() {
     return new Date(dateString).toLocaleDateString("ko-KR");
   };
 
+  // Define columns for ResponsiveDataList
+  interface MatchingWithNames {
+    id: number;
+    employerName: string;
+    employeeName: string;
+    agreed_salary: number | string;
+    employer_fee_rate: number;
+    employer_fee_amount: number | string | null;
+    employee_fee_rate: number;
+    employee_fee_amount: number | string | null;
+    matching_status: MatchingStatus;
+    matched_at: string;
+  }
+
+  const matchingsWithNames: MatchingWithNames[] = paginatedMatchings.map((matching) => {
+    const jobPosting = jobPostingMap.get(matching.job_posting_id);
+    const jobSeeking = jobSeekingMap.get(matching.job_seeking_posting_id);
+    const employerName = jobPosting ? customerMap.get(jobPosting.customer_id) || "알 수 없음" : "알 수 없음";
+    const employeeName = jobSeeking ? customerMap.get(jobSeeking.customer_id) || "알 수 없음" : "알 수 없음";
+
+    return {
+      id: matching.id,
+      employerName,
+      employeeName,
+      agreed_salary: matching.agreed_salary,
+      employer_fee_rate: matching.employer_fee_rate,
+      employer_fee_amount: matching.employer_fee_amount,
+      employee_fee_rate: matching.employee_fee_rate,
+      employee_fee_amount: matching.employee_fee_amount,
+      matching_status: matching.matching_status,
+      matched_at: matching.matched_at,
+    };
+  });
+
+  const columns: Column<MatchingWithNames>[] = [
+    {
+      key: "id",
+      header: "매칭 ID",
+      mobileLabel: "매칭 ID",
+      cell: (matching) => <span className="font-medium">#{matching.id}</span>,
+    },
+    {
+      key: "employer",
+      header: "구인자",
+      mobileLabel: "구인자",
+      cell: (matching) => matching.employerName,
+    },
+    {
+      key: "employee",
+      header: "구직자",
+      mobileLabel: "구직자",
+      cell: (matching) => matching.employeeName,
+    },
+    {
+      key: "salary",
+      header: "합의 급여",
+      mobileLabel: "합의 급여",
+      cell: (matching) => formatCurrencyFromString(matching.agreed_salary),
+    },
+    {
+      key: "employer_fee",
+      header: "구인 수수료",
+      mobileLabel: "구인 수수료",
+      cell: (matching) => (
+        <span>
+          {matching.employer_fee_rate}%
+          {matching.employer_fee_amount && ` (${formatCurrencyFromString(matching.employer_fee_amount)})`}
+        </span>
+      ),
+      hideOnMobile: true,
+    },
+    {
+      key: "employee_fee",
+      header: "구직 수수료",
+      mobileLabel: "구직 수수료",
+      cell: (matching) => (
+        <span>
+          {matching.employee_fee_rate}%
+          {matching.employee_fee_amount && ` (${formatCurrencyFromString(matching.employee_fee_amount)})`}
+        </span>
+      ),
+      hideOnMobile: true,
+    },
+    {
+      key: "status",
+      header: "매칭 상태",
+      mobileLabel: "상태",
+      cell: (matching) => (
+        <Badge variant={matchingStatusMap[matching.matching_status].variant}>
+          {matchingStatusMap[matching.matching_status].label}
+        </Badge>
+      ),
+    },
+    {
+      key: "matched_at",
+      header: "매칭일",
+      mobileLabel: "매칭일",
+      cell: (matching) => formatDate(matching.matched_at),
+      hideOnMobile: true,
+    },
+    {
+      key: "actions",
+      header: "작업",
+      mobileLabel: "작업",
+      className: "text-right",
+      cell: (matching) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(`/dashboard/matchings/${matching.id}`)}
+            aria-label="매칭 상세보기"
+          >
+            <Eye className="h-4 w-4 md:mr-2" aria-hidden="true" />
+            <span className="hidden md:inline">상세</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(`/dashboard/matchings/${matching.id}/edit`)}
+            aria-label="매칭 수정"
+          >
+            <Pencil className="h-4 w-4 md:mr-2" aria-hidden="true" />
+            <span className="hidden md:inline">수정</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleDelete(matching.id)}
+            aria-label="매칭 삭제"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -189,92 +326,13 @@ export default function MatchingsPage() {
                 ))}
               </div>
             </div>
-          ) : filteredMatchings.length === 0 ? (
-            <div className="flex h-32 items-center justify-center">
-              <p className="text-muted-foreground">매칭이 없습니다</p>
-            </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>매칭 ID</TableHead>
-                    <TableHead>구인자</TableHead>
-                    <TableHead>구직자</TableHead>
-                    <TableHead>합의 급여</TableHead>
-                    <TableHead>구인 수수료</TableHead>
-                    <TableHead>구직 수수료</TableHead>
-                    <TableHead>매칭 상태</TableHead>
-                    <TableHead>매칭일</TableHead>
-                    <TableHead className="w-[70px]">작업</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedMatchings.map((matching) => {
-                    const jobPosting = jobPostingMap.get(matching.job_posting_id);
-                    const jobSeeking = jobSeekingMap.get(matching.job_seeking_posting_id);
-                    const employerName = jobPosting ? customerMap.get(jobPosting.customer_id) || "알 수 없음" : "알 수 없음";
-                    const employeeName = jobSeeking ? customerMap.get(jobSeeking.customer_id) || "알 수 없음" : "알 수 없음";
-
-                    return (
-                      <TableRow key={matching.id}>
-                        <TableCell className="font-medium">#{matching.id}</TableCell>
-                        <TableCell>{employerName}</TableCell>
-                        <TableCell>{employeeName}</TableCell>
-                        <TableCell>{formatCurrencyFromString(matching.agreed_salary)}</TableCell>
-                        <TableCell>
-                          {matching.employer_fee_rate}%
-                          {matching.employer_fee_amount && ` (${formatCurrencyFromString(matching.employer_fee_amount)})`}
-                        </TableCell>
-                        <TableCell>
-                          {matching.employee_fee_rate}%
-                          {matching.employee_fee_amount && ` (${formatCurrencyFromString(matching.employee_fee_amount)})`}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={matchingStatusMap[matching.matching_status].variant}>
-                            {matchingStatusMap[matching.matching_status].label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(matching.matched_at)}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>작업</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/dashboard/matchings/${matching.id}`)}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                상세보기
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/dashboard/matchings/${matching.id}/edit`)}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                수정
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(matching.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                삭제
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <ResponsiveDataList
+              data={matchingsWithNames}
+              columns={columns}
+              keyExtractor={(matching) => matching.id.toString()}
+              emptyMessage="매칭이 없습니다"
+            />
           )}
 
           {!loading && filteredMatchings.length > 0 && (

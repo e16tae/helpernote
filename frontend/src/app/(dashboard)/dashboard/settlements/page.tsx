@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +18,7 @@ import { Customer } from "@/types/customer";
 import { toNumber, formatCurrencyFromString } from "@/lib/utils/currency";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/use-pagination";
+import { ResponsiveDataList, Column } from "@/components/ui/responsive-data-list";
 
 interface SettlementInfo {
   matching: Matching;
@@ -374,69 +374,87 @@ interface SettlementTableProps {
 }
 
 function SettlementTable({ settlements, formatCurrency }: SettlementTableProps) {
+  const columns: Column<SettlementInfo>[] = [
+    {
+      key: "id",
+      header: "매칭 ID",
+      mobileLabel: "매칭 ID",
+      cell: (settlement) => <span className="font-medium">#{settlement.matching.id}</span>,
+    },
+    {
+      key: "employer",
+      header: "구인자",
+      mobileLabel: "구인자",
+      cell: (settlement) => settlement.employerName,
+    },
+    {
+      key: "employee",
+      header: "구직자",
+      mobileLabel: "구직자",
+      cell: (settlement) => settlement.employeeName,
+    },
+    {
+      key: "salary",
+      header: "합의 급여",
+      mobileLabel: "합의 급여",
+      cell: (settlement) => formatCurrencyFromString(settlement.matching.agreed_salary),
+    },
+    {
+      key: "employer_fee",
+      header: "구인자 수수료",
+      mobileLabel: "구인 수수료",
+      cell: (settlement) => formatCurrencyFromString(settlement.matching.employer_fee_amount),
+      hideOnMobile: true,
+    },
+    {
+      key: "employer_status",
+      header: "구인자 정산",
+      mobileLabel: "구인 정산",
+      cell: (settlement) => (
+        <Badge variant={settlementStatusMap[settlement.jobPosting.settlement_status].variant}>
+          {settlementStatusMap[settlement.jobPosting.settlement_status].label}
+        </Badge>
+      ),
+    },
+    {
+      key: "employee_fee",
+      header: "구직자 수수료",
+      mobileLabel: "구직 수수료",
+      cell: (settlement) => formatCurrencyFromString(settlement.matching.employee_fee_amount),
+      hideOnMobile: true,
+    },
+    {
+      key: "employee_status",
+      header: "구직자 정산",
+      mobileLabel: "구직 정산",
+      cell: (settlement) => (
+        <Badge variant={settlementStatusMap[settlement.jobSeeking.settlement_status].variant}>
+          {settlementStatusMap[settlement.jobSeeking.settlement_status].label}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      header: "작업",
+      mobileLabel: "작업",
+      className: "text-right",
+      cell: (settlement) => (
+        <Link href={`/dashboard/matchings/${settlement.matching.id}`}>
+          <Button variant="ghost" size="sm" aria-label={`매칭 ${settlement.matching.id} 상세 보기`}>
+            <Eye className="h-4 w-4 md:mr-2" aria-hidden="true" />
+            <span className="hidden md:inline">상세</span>
+          </Button>
+        </Link>
+      ),
+    },
+  ];
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>매칭 ID</TableHead>
-            <TableHead>구인자</TableHead>
-            <TableHead>구직자</TableHead>
-            <TableHead>합의 급여</TableHead>
-            <TableHead>구인자 수수료</TableHead>
-            <TableHead>구인자 정산</TableHead>
-            <TableHead>구직자 수수료</TableHead>
-            <TableHead>구직자 정산</TableHead>
-            <TableHead className="text-right">작업</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {settlements.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground">
-                정산 내역이 없습니다
-              </TableCell>
-            </TableRow>
-          ) : (
-            settlements.map((settlement) => (
-              <TableRow key={settlement.matching.id}>
-                <TableCell className="font-medium">
-                  #{settlement.matching.id}
-                </TableCell>
-                <TableCell>{settlement.employerName}</TableCell>
-                <TableCell>{settlement.employeeName}</TableCell>
-                <TableCell>
-                  {formatCurrencyFromString(settlement.matching.agreed_salary)}
-                </TableCell>
-                <TableCell>
-                  {formatCurrencyFromString(settlement.matching.employer_fee_amount)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={settlementStatusMap[settlement.jobPosting.settlement_status].variant}>
-                    {settlementStatusMap[settlement.jobPosting.settlement_status].label}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {formatCurrencyFromString(settlement.matching.employee_fee_amount)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={settlementStatusMap[settlement.jobSeeking.settlement_status].variant}>
-                    {settlementStatusMap[settlement.jobSeeking.settlement_status].label}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Link href={`/dashboard/matchings/${settlement.matching.id}`}>
-                    <Button variant="ghost" size="sm" aria-label={`매칭 ${settlement.matching.id} 상세 보기`}>
-                      <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
-                      상세
-                    </Button>
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <ResponsiveDataList
+      data={settlements}
+      columns={columns}
+      keyExtractor={(settlement) => settlement.matching.id.toString()}
+      emptyMessage="정산 내역이 없습니다"
+    />
   );
 }
