@@ -99,3 +99,143 @@ pub async fn delete_user_file(
 
     Ok(StatusCode::NO_CONTENT)
 }
+
+/// Upload a file for a user
+pub async fn upload_user_file(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    State(config): State<crate::config::Config>,
+    mut multipart: axum::extract::Multipart,
+) -> Result<Json<crate::models::file::UploadFileResponse>, (StatusCode, Json<ErrorResponse>)> {
+    use axum::body::Bytes;
+    use s3::creds::Credentials;
+    use s3::{Bucket, Region};
+    use uuid::Uuid;
+    use crate::models::file::FileType;
+
+    // Get multipart field
+    let field = multipart
+        .next_field()
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to read multipart field: {:?}", e);
+            (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: "Failed to read file".to_string(),
+                }),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: "No file provided".to_string(),
+                }),
+            )
+        })?;
+
+    let original_filename = field.file_name().map(|s| s.to_string());
+    let content_type = field.content_type().map(|s| s.to_string());
+
+    // Read file data
+    let data = field.bytes().await.map_err(|e| {
+        tracing::error!("Failed to read file bytes: {:?}", e);
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Failed to read file data".to_string(),
+            }),
+        )
+    })?;
+
+    // Determine file type
+    let file_type = content_type
+        .as_ref()
+        .map(|ct| FileType::from_mime_type(ct))
+        .unwrap_or(FileType::Other);
+
+    // Generate unique file path
+    let file_extension = original_filename
+        .as_ref()
+        .and_then(|name| name.rsplit('.').next())
+        .unwrap_or("bin");
+    let file_name = format!("{}.{}", Uuid::new_v4(), file_extension);
+    let file_path = format!("users/{}/{}", user.user_id, file_name);
+
+    // Upload to MinIO
+    upload_to_minio(&config, &file_path, data.clone())
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to upload to MinIO: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to upload file".to_string(),
+                }),
+            )
+        })?;
+
+    // Save metadata to database
+    let file_record = file::create_user_file(
+        &pool,
+        user.user_id,
+        file_path.clone(),
+        file_type,
+        Some(data.len() as i64),
+        original_filename,
+        content_type,
+    )
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to save file metadata: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "Failed to save file metadata".to_string(),
+            }),
+        )
+    })?;
+
+    let file_url = format!(
+        "{}/{}/{}",
+        config.minio_endpoint, config.minio_bucket, file_path
+    );
+
+    Ok(Json(crate::models::file::UploadFileResponse {
+        file_id: file_record.id,
+        file_path,
+        file_url,
+    }))
+}
+
+/// Helper function to upload to MinIO
+async fn upload_to_minio(config: &crate::config::Config, path: &str, data: axum::body::Bytes) -> Result<(), String> {
+    use s3::creds::Credentials;
+    use s3::{Bucket, Region};
+
+    let credentials = Credentials::new(
+        Some(&config.minio_access_key),
+        Some(&config.minio_secret_key),
+        None,
+        None,
+        None,
+    )
+    .map_err(|e| format!("Failed to create credentials: {}", e))?;
+
+    let region = Region::Custom {
+        region: "us-east-1".to_string(),
+        endpoint: config.minio_endpoint.clone(),
+    };
+
+    let bucket = Bucket::new(&config.minio_bucket, region, credentials)
+        .map_err(|e| format!("Failed to create bucket: {}", e))?
+        .with_path_style();
+
+    bucket
+        .put_object(path, &data)
+        .await
+        .map_err(|e| format!("Failed to put object: {}", e))?;
+
+    Ok(())
+}

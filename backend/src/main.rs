@@ -87,8 +87,11 @@ async fn main() {
         .route("/api/users/memos/{id}", put(handlers::user_memo::update_user_memo))
         .route("/api/users/memos/{id}", delete(handlers::user_memo::delete_user_memo))
         // User files
+        .route("/api/users/files", post(handlers::user_file::upload_user_file))
         .route("/api/users/files", get(handlers::user_file::list_user_files))
         .route("/api/users/files/{id}", delete(handlers::user_file::delete_user_file))
+        // Dashboard
+        .route("/api/dashboard/stats", get(handlers::dashboard::get_dashboard_stats))
         // Customer routes
         .route("/api/customers", post(handlers::customer::create_customer))
         .route("/api/customers", get(handlers::customer::list_customers))

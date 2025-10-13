@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod customer;
+pub mod dashboard;
 pub mod file;
 pub mod health;
 pub mod job_posting;
