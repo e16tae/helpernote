@@ -14,6 +14,7 @@ import { apiClient, getErrorMessage } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import type { RegisterRequest, SecurityQuestion } from "@/types/user";
 import { Logo } from "@/components/logo";
+import { formatPhoneNumber } from "@/lib/utils/phone";
 
 const SECURITY_QUESTIONS: SecurityQuestion[] = [
   { id: 1, question_text: "당신의 출생지는 어디입니까?", created_at: "", updated_at: "" },
@@ -149,12 +150,19 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">연락처</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="010-1234-5678"
-                {...register("phone")}
-                aria-invalid={errors.phone ? "true" : "false"}
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="010-1234-5678"
+                    value={field.value}
+                    onChange={(e) => field.onChange(formatPhoneNumber(e.target.value))}
+                    aria-invalid={errors.phone ? "true" : "false"}
+                  />
+                )}
               />
               {errors.phone && (
                 <p className="text-sm text-destructive">{errors.phone.message}</p>
