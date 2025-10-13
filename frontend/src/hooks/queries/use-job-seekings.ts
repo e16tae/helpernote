@@ -58,26 +58,26 @@ export function useDeleteJobSeeking() {
   });
 }
 
-// Get job seeking memos
-export function useJobSeekingMemos(seekingId: number) {
-  return useQuery({
-    queryKey: [...queryKeys.jobSeekings.detail(seekingId), 'memos'] as const,
-    queryFn: () => jobSeekingApi.getMemos(seekingId),
-    enabled: !!seekingId,
-  });
-}
+// Get job seeking memos (currently not implemented in API)
+// export function useJobSeekingMemos(seekingId: number) {
+//   return useQuery({
+//     queryKey: [...queryKeys.jobSeekings.detail(seekingId), 'memos'] as const,
+//     queryFn: () => jobSeekingApi.getMemos(seekingId),
+//     enabled: !!seekingId,
+//   });
+// }
 
-// Create job seeking memo
-export function useCreateJobSeekingMemo() {
-  const queryClient = useQueryClient();
+// Create job seeking memo (currently not implemented in API)
+// export function useCreateJobSeekingMemo() {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ seekingId, memoText }: { seekingId: number; memoText: string }) =>
-      jobSeekingApi.createMemo(seekingId, memoText),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: [...queryKeys.jobSeekings.detail(variables.seekingId), 'memos'] as const
-      });
-    },
-  });
-}
+//   return useMutation({
+//     mutationFn: ({ seekingId, memoText }: { seekingId: number; memoText: string }) =>
+//       jobSeekingApi.createMemo(seekingId, memoText),
+//     onSuccess: (_, variables) => {
+//       queryClient.invalidateQueries({
+//         queryKey: [...queryKeys.jobSeekings.detail(variables.seekingId), 'memos'] as const
+//       });
+//     },
+//   });
+// }

@@ -14,6 +14,7 @@ import {
   Settings,
   Menu,
   X,
+  Tags,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -49,6 +50,11 @@ const menuItems = [
     title: "정산 관리",
     href: "/dashboard/settlements",
     icon: DollarSign,
+  },
+  {
+    title: "태그 관리",
+    href: "/dashboard/tags",
+    icon: Tags,
   },
   {
     title: "설정",

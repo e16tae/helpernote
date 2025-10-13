@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProfilePhotoUpload } from "@/components/file/ProfilePhotoUpload";
 import { FileList } from "@/components/file/FileList";
 import { FileUpload } from "@/components/file/FileUpload";
+import { MemoList } from "@/components/memos/MemoList";
 
 export default function CustomerDetailPage() {
   const router = useRouter();
@@ -300,6 +301,20 @@ export default function CustomerDetailPage() {
           refreshTrigger={fileRefreshTrigger}
         />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>메모</CardTitle>
+          <CardDescription>고객에 대한 메모를 작성하고 관리합니다</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MemoList
+            entityType="customer"
+            entityId={customerId}
+            endpoint={`/api/customers/${customerId}/memos`}
+          />
+        </CardContent>
+      </Card>
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}

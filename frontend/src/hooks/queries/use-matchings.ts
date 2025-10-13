@@ -82,38 +82,38 @@ export function useCreateMatchingMemo() {
   });
 }
 
-// Get settlement memos
-export function useSettlementMemos(matchingId: number) {
-  return useQuery({
-    queryKey: [...queryKeys.matchings.detail(matchingId), 'settlement-memos'] as const,
-    queryFn: () => matchingApi.getSettlementMemos(matchingId),
-    enabled: !!matchingId,
-  });
-}
+// Get settlement memos (currently not implemented in API)
+// export function useSettlementMemos(matchingId: number) {
+//   return useQuery({
+//     queryKey: [...queryKeys.matchings.detail(matchingId), 'settlement-memos'] as const,
+//     queryFn: () => matchingApi.getSettlementMemos(matchingId),
+//     enabled: !!matchingId,
+//   });
+// }
 
-// Create settlement memo
-export function useCreateSettlementMemo() {
-  const queryClient = useQueryClient();
+// Create settlement memo (currently not implemented in API)
+// export function useCreateSettlementMemo() {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({
-      matchingId,
-      settlementType,
-      settlementAmount,
-      memoText
-    }: {
-      matchingId: number;
-      settlementType: 'employer' | 'employee';
-      settlementAmount: number;
-      memoText: string;
-    }) =>
-      matchingApi.createSettlementMemo(matchingId, settlementType, settlementAmount, memoText),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: [...queryKeys.matchings.detail(variables.matchingId), 'settlement-memos'] as const
-      });
-      // Also invalidate the matching detail to update settlement status
-      queryClient.invalidateQueries({ queryKey: queryKeys.matchings.detail(variables.matchingId) });
-    },
-  });
-}
+//   return useMutation({
+//     mutationFn: ({
+//       matchingId,
+//       settlementType,
+//       settlementAmount,
+//       memoText
+//     }: {
+//       matchingId: number;
+//       settlementType: 'employer' | 'employee';
+//       settlementAmount: number;
+//       memoText: string;
+//     }) =>
+//       matchingApi.createSettlementMemo(matchingId, settlementType, settlementAmount, memoText),
+//     onSuccess: (_, variables) => {
+//       queryClient.invalidateQueries({
+//         queryKey: [...queryKeys.matchings.detail(variables.matchingId), 'settlement-memos'] as const
+//       });
+//       // Also invalidate the matching detail to update settlement status
+//       queryClient.invalidateQueries({ queryKey: queryKeys.matchings.detail(variables.matchingId) });
+//     },
+//   });
+// }
