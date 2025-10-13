@@ -12,11 +12,13 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 60 * 1000, // 1 minute
             gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
-            retry: 1,
+            retry: 3, // Retry failed requests 3 times
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
             refetchOnWindowFocus: false,
           },
           mutations: {
-            retry: 0,
+            retry: 1, // Retry mutations once on failure
+            retryDelay: 1000,
           },
         },
       })
