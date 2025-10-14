@@ -4,6 +4,8 @@ use sqlx::PgPool;
 
 use crate::middleware::auth::AuthUser;
 use crate::models::user::User;
+use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::Decimal;
 
 #[derive(Debug, Serialize)]
 pub struct UserProfileResponse {
@@ -99,6 +101,34 @@ pub async fn update_profile(
         }
     }
 
+    let employer_rate_decimal = payload
+        .default_employer_fee_rate
+        .map(|rate| {
+            Decimal::from_f64(rate).ok_or_else(|| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(ErrorResponse {
+                        error: "Employer fee rate value is invalid".to_string(),
+                    }),
+                )
+            })
+        })
+        .transpose()?;
+
+    let employee_rate_decimal = payload
+        .default_employee_fee_rate
+        .map(|rate| {
+            Decimal::from_f64(rate).ok_or_else(|| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(ErrorResponse {
+                        error: "Employee fee rate value is invalid".to_string(),
+                    }),
+                )
+            })
+        })
+        .transpose()?;
+
     // Build dynamic query based on what fields are being updated
     let mut query = String::from("UPDATE users SET updated_at = NOW()");
     let mut param_count = 1;
@@ -127,12 +157,12 @@ pub async fn update_profile(
         query_builder = query_builder.bind(phone);
     }
 
-    if let Some(rate) = payload.default_employer_fee_rate {
-        query_builder = query_builder.bind(rust_decimal::Decimal::try_from(rate).unwrap());
+    if let Some(rate) = employer_rate_decimal {
+        query_builder = query_builder.bind(rate);
     }
 
-    if let Some(rate) = payload.default_employee_fee_rate {
-        query_builder = query_builder.bind(rust_decimal::Decimal::try_from(rate).unwrap());
+    if let Some(rate) = employee_rate_decimal {
+        query_builder = query_builder.bind(rate);
     }
 
     let updated_user = query_builder.fetch_one(&pool).await.map_err(|e| {
