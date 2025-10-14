@@ -6,8 +6,7 @@ namespace: helpernote
 resources:
   - namespace.yaml
   - configmap.yaml
-  # ⚠️  Create secrets.yaml from secrets.example.yaml before deploying
-  # - secrets.yaml  # Uncomment after creating your secrets.yaml
+  # ⚠️  민감한 값은 Sealed Secrets를 사용해 k8s/sealed-secrets/에 커밋하세요.
   - postgres-statefulset.yaml
   - minio-deployment.yaml
   - backend-deployment.yaml
