@@ -33,3 +33,23 @@ patchesStrategicMerge:
   - resources-patch.yaml
   - ingress-patch.yaml
   - imagepullsecrets-patch.yaml
+
+patchesJson6902:
+  - target:
+      group: bitnami.com
+      version: v1alpha1
+      kind: SealedSecret
+      name: prod-backend-secret
+    path: sealedsecret-backend-name-patch.yaml
+  - target:
+      group: bitnami.com
+      version: v1alpha1
+      kind: SealedSecret
+      name: prod-minio-secret
+    path: sealedsecret-minio-name-patch.yaml
+  - target:
+      group: bitnami.com
+      version: v1alpha1
+      kind: SealedSecret
+      name: prod-postgres-secret
+    path: sealedsecret-postgres-name-patch.yaml
