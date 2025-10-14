@@ -61,6 +61,7 @@ async fn main() {
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/refresh", post(handlers::auth::refresh_token))
+        .route("/api/auth/logout", post(handlers::auth::logout))
         .route(
             "/api/auth/forgot-password",
             post(handlers::auth::forgot_password),
@@ -322,7 +323,12 @@ async fn main() {
         // Production: restrictive CORS
         CorsLayer::new()
             .allow_origin(
-                ["https://helpernote.my", "https://www.helpernote.my"].map(|s| s.parse().unwrap()),
+                [
+                    "https://helpernote.my",
+                    "https://www.helpernote.my",
+                    "https://api.helpernote.my",
+                ]
+                .map(|s| s.parse().unwrap()),
             )
             .allow_methods([
                 axum::http::Method::GET,

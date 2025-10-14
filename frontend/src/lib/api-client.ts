@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from "axios";
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from "axios";
 import { env } from "./env";
 import { logger } from "./logger";
 
@@ -82,43 +82,135 @@ export const apiClient: AxiosInstance = axios.create({
     "Content-Type": "application/json",
   },
   timeout: 30000, // 30초 타임아웃
+  withCredentials: true,
 });
 
-// Request interceptor to add JWT token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+const refreshClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
   },
-  (error) => {
-    return Promise.reject(error);
+  timeout: 30000,
+  withCredentials: true,
+});
+
+type RetryAxiosRequestConfig = (AxiosRequestConfig & { _retry?: boolean }) | undefined;
+
+const AUTH_ENDPOINTS = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/refresh",
+  "/api/auth/logout",
+  "/api/auth/forgot-password",
+];
+
+let isRefreshing = false;
+const failedQueue: Array<{
+  resolve: (value: unknown) => void;
+  reject: (error: unknown) => void;
+  config: NonNullable<RetryAxiosRequestConfig>;
+}> = [];
+
+function shouldAttemptRefresh(config: RetryAxiosRequestConfig): config is NonNullable<RetryAxiosRequestConfig> {
+  if (!config?.url) return false;
+  return !AUTH_ENDPOINTS.some((endpoint) => config.url?.includes(endpoint));
+}
+
+function shouldSkipUnauthorizedHandling(config: RetryAxiosRequestConfig): boolean {
+  if (!config?.url) return false;
+  // 로그인/회원가입/비밀번호 재설정 요청은 프런트가 자체적으로 에러를 처리해야 함
+  return ["/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"].some((endpoint) =>
+    config.url!.includes(endpoint)
+  );
+}
+
+function processQueue(error: unknown | null) {
+  while (failedQueue.length) {
+    const { resolve, reject, config } = failedQueue.shift()!;
+    if (error) {
+      reject(error);
+    } else {
+      resolve(apiClient(config));
+    }
   }
-);
+}
+
+function enqueueRequest(originalRequest: NonNullable<RetryAxiosRequestConfig>) {
+  return new Promise((resolve, reject) => {
+    failedQueue.push({ resolve, reject, config: originalRequest });
+
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshClient
+        .post("/api/auth/refresh", {})
+        .then(() => {
+          processQueue(null);
+        })
+        .catch((refreshError) => {
+          processQueue(refreshError);
+        })
+        .finally(() => {
+          isRefreshing = false;
+        });
+    }
+  });
+}
+
+function handleUnauthorized() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const performLogout = () => {
+    if (typeof fetch === "function") {
+      fetch(`${API_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {
+        // ignore
+      });
+    }
+  };
+
+  performLogout();
+
+  if (!window.location.pathname.includes("/login")) {
+    window.location.href = "/login";
+  }
+}
 
 // Response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    const endpoint = error.config?.url || 'unknown';
+  async (error: AxiosError) => {
+    const endpoint = error.config?.url || "unknown";
     const status = error.response?.status;
 
     // 401 Unauthorized - 토큰 만료 또는 유효하지 않음
     if (status === 401) {
-      logger.warn('Unauthorized request - redirecting to login', { endpoint });
-      localStorage.removeItem("token");
+      logger.warn("Unauthorized request", { endpoint });
+      const originalRequest = error.config as RetryAxiosRequestConfig;
 
-      // 로그인 페이지가 아닌 경우에만 리다이렉트
-      if (!window.location.pathname.includes("/login")) {
-        window.location.href = "/login";
+      if (shouldSkipUnauthorizedHandling(originalRequest)) {
+        return Promise.reject(error);
       }
+
+      if (originalRequest && !originalRequest._retry && shouldAttemptRefresh(originalRequest)) {
+        originalRequest._retry = true;
+
+        try {
+          return await enqueueRequest(originalRequest);
+        } catch (refreshError) {
+          handleUnauthorized();
+          return Promise.reject(refreshError);
+        }
+      }
+
+      handleUnauthorized();
     }
 
-    // 403 Forbidden - 권한 없음
     if (status === 403) {
-      logger.warn('Access forbidden', {
+      logger.warn("Access forbidden", {
         endpoint,
         data: error.response?.data,
       });
@@ -134,7 +226,7 @@ apiClient.interceptors.response.use(
 
     // 기타 에러 로깅
     if (status && status >= 400 && status < 500) {
-      logger.debug('Client error', {
+      logger.debug("Client error", {
         endpoint,
         status,
         data: error.response?.data,

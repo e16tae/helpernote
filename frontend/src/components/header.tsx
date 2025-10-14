@@ -39,9 +39,14 @@ export function Header() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    } finally {
+      router.push("/login");
+    }
   };
 
   return (
@@ -110,7 +115,7 @@ export function Header() {
                 <span>계정 설정</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
+              <DropdownMenuItem onClick={() => { void handleLogout(); }}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>로그아웃</span>
               </DropdownMenuItem>

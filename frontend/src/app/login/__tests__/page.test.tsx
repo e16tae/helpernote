@@ -22,8 +22,6 @@ jest.mock('next-themes', () => ({
 describe('LoginPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Clear localStorage
-    localStorage.clear();
   });
 
   it('should render login form', () => {
@@ -95,7 +93,7 @@ describe('LoginPage', () => {
 
     // Mock successful API response
     (apiClient.post as jest.Mock).mockResolvedValue({
-      data: { access_token: 'test-token' },
+      data: {},
     });
 
     render(<LoginPage />);
@@ -113,7 +111,6 @@ describe('LoginPage', () => {
         username: 'testuser',
         password: 'password123',
       });
-      expect(localStorage.getItem('token')).toBe('test-token');
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
   });
@@ -151,7 +148,7 @@ describe('LoginPage', () => {
 
     // Mock slow API response
     (apiClient.post as jest.Mock).mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ data: { access_token: 'test-token' } }), 1000))
+      () => new Promise((resolve) => setTimeout(() => resolve({ data: {} }), 1000))
     );
 
     render(<LoginPage />);

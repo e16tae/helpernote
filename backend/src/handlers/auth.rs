@@ -1,4 +1,9 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::State,
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use validator::Validate;
@@ -48,7 +53,7 @@ impl ErrorResponse {
 pub async fn register(
     State(pool): State<PgPool>,
     Json(payload): Json<RegisterRequest>,
-) -> Result<(StatusCode, Json<AuthResponse>), (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
     // Validate input
     if let Err(e) = payload.validate() {
         return Err((
@@ -129,17 +134,19 @@ pub async fn register(
     // Update last login
     let _ = user_repo.update_last_login(user.id).await;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(AuthResponse {
-            access_token,
-            refresh_token,
-            user: UserInfo {
-                id: user.id,
-                username: user.username,
-            },
-        }),
-    ))
+    let mut response = Json(AuthResponse {
+        access_token,
+        refresh_token,
+        user: UserInfo {
+            id: user.id,
+            username: user.username,
+        },
+    })
+    .into_response();
+    *response.status_mut() = StatusCode::CREATED;
+    set_auth_cookies(&config, &mut response, &access_token, &refresh_token)?;
+
+    Ok(response)
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -153,7 +160,7 @@ pub struct LoginRequest {
 pub async fn login(
     State(pool): State<PgPool>,
     Json(payload): Json<LoginRequest>,
-) -> Result<Json<AuthResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
     // Validate input
     if let Err(e) = payload.validate() {
         return Err((
@@ -231,34 +238,30 @@ pub async fn login(
     // Update last login
     let _ = user_repo.update_last_login(user.id).await;
 
-    Ok(Json(AuthResponse {
+    let mut response = Json(AuthResponse {
         access_token,
         refresh_token,
         user: UserInfo {
             id: user.id,
             username: user.username,
         },
-    }))
+    })
+    .into_response();
+    set_auth_cookies(&config, &mut response, &access_token, &refresh_token)?;
+
+    Ok(response)
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct RefreshRequest {
-    #[validate(length(min = 1))]
-    pub refresh_token: String,
+    pub refresh_token: Option<String>,
 }
 
 pub async fn refresh_token(
     State(pool): State<PgPool>,
+    headers: HeaderMap,
     Json(payload): Json<RefreshRequest>,
-) -> Result<Json<AuthResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // Validate input
-    if let Err(e) = payload.validate() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(format!("Validation error: {}", e))),
-        ));
-    }
-
+) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
     // Get config from environment
     let config = Config::from_env().map_err(|e| {
         (
@@ -267,10 +270,28 @@ pub async fn refresh_token(
         )
     })?;
 
+    let refresh_token_value = payload
+        .refresh_token
+        .and_then(|token| {
+            let trimmed = token.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        })
+        .or_else(|| extract_cookie_value(&headers, "refresh_token"))
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse::new("Refresh token is required")),
+            )
+        })?;
+
     // Validate refresh token
     let auth_service = AuthService::new(&config.jwt_secret, config.jwt_expiration);
     let claims = auth_service
-        .validate_token(&payload.refresh_token, TokenType::Refresh)
+        .validate_token(&refresh_token_value, TokenType::Refresh)
         .map_err(|e| {
             (
                 StatusCode::UNAUTHORIZED,
@@ -320,14 +341,18 @@ pub async fn refresh_token(
             )
         })?;
 
-    Ok(Json(AuthResponse {
-        access_token: new_access_token,
-        refresh_token: new_refresh_token,
+    let mut response = Json(AuthResponse {
+        access_token: new_access_token.clone(),
+        refresh_token: new_refresh_token.clone(),
         user: UserInfo {
             id: user.id,
             username: user.username,
         },
-    }))
+    })
+    .into_response();
+    set_auth_cookies(&config, &mut response, &new_access_token, &new_refresh_token)?;
+
+    Ok(response)
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -399,4 +424,107 @@ pub async fn forgot_password(
             "message": "Password successfully reset"
         })),
     ))
+}
+
+pub async fn logout(State(config): State<Config>) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
+    let mut response =
+        Json(serde_json::json!({ "message": "Logged out" })).into_response();
+    clear_auth_cookies(&config, &mut response)?;
+    Ok(response)
+}
+
+fn set_auth_cookies(
+    config: &Config,
+    response: &mut Response,
+    access_token: &str,
+    refresh_token: &str,
+) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+    let domain = config.cookie_domain.as_deref();
+    let access_cookie = build_cookie(
+        "token",
+        access_token,
+        config.jwt_expiration,
+        true,
+        None,
+        domain,
+    )?;
+    let refresh_cookie = build_cookie(
+        "refresh_token",
+        refresh_token,
+        7 * 24 * 3600,
+        true,
+        None,
+        domain,
+    )?;
+
+    let headers = response.headers_mut();
+    headers.append(header::SET_COOKIE, access_cookie);
+    headers.append(header::SET_COOKIE, refresh_cookie);
+
+    Ok(())
+}
+
+fn clear_auth_cookies(config: &Config, response: &mut Response) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+    let domain = config.cookie_domain.as_deref();
+    let clear_access = build_cookie("token", "", 0, true, Some(true), domain)?;
+    let clear_refresh = build_cookie("refresh_token", "", 0, true, Some(true), domain)?;
+    let headers = response.headers_mut();
+    headers.append(header::SET_COOKIE, clear_access);
+    headers.append(header::SET_COOKIE, clear_refresh);
+    Ok(())
+}
+
+fn extract_cookie_value(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get(header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|cookie_header| {
+            cookie_header.split(';').find_map(|pair| {
+                let trimmed = pair.trim();
+                if let Some(rest) = trimmed.strip_prefix(name) {
+                    if let Some(value) = rest.strip_prefix('=') {
+                        return Some(value.to_string());
+                    }
+                }
+                None
+            })
+        })
+}
+
+fn build_cookie(
+    name: &str,
+    value: &str,
+    max_age: i64,
+    http_only: bool,
+    remove: Option<bool>,
+    domain: Option<&str>,
+) -> Result<HeaderValue, (StatusCode, Json<ErrorResponse>)> {
+    let mut cookie = format!("{}={}; Path=/; SameSite=Lax", name, value);
+
+    if let Some(true) = remove {
+        cookie.push_str("; Max-Age=0");
+    } else if max_age > 0 {
+        cookie.push_str(&format!("; Max-Age={}", max_age));
+    }
+
+    if let Some(domain) = domain {
+        if !domain.trim().is_empty() {
+            cookie.push_str(&format!("; Domain={}", domain.trim()));
+        }
+    }
+
+    if http_only {
+        cookie.push_str("; HttpOnly");
+    }
+
+    if !cfg!(debug_assertions) {
+        cookie.push_str("; Secure");
+    }
+
+    HeaderValue::from_str(&cookie).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!("Failed to build cookie: {}", e))),
+        )
+    })
 }

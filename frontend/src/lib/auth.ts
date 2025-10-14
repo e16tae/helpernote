@@ -4,7 +4,7 @@ import { LoginRequest, LoginResponse, RegisterRequest, User } from "@/types/user
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     const response = await apiClient.post("/api/auth/login", data);
-    return response.data;
+    return response.data as LoginResponse;
   },
 
   register: async (data: RegisterRequest): Promise<void> => {
@@ -16,7 +16,7 @@ export const authApi = {
     return response.data.user;
   },
 
-  logout: () => {
-    localStorage.removeItem("token");
+  logout: async () => {
+    await apiClient.post("/api/auth/logout");
   },
 };
