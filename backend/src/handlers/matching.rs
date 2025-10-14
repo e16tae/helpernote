@@ -222,6 +222,15 @@ pub async fn update_matching_status(
 ) -> Result<Json<MatchingResponse>, (StatusCode, Json<ErrorResponse>)> {
     verify_matching_ownership(&pool, matching_id, user.user_id).await?;
 
+    if matches!(payload.matching_status, Some(MatchingStatus::Cancelled)) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "매칭 취소는 별도의 취소 API를 사용해주세요".to_string(),
+            }),
+        ));
+    }
+
     let matching = matching::update_matching_status(&pool, matching_id, payload)
         .await
         .map_err(|e| {

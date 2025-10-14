@@ -353,7 +353,7 @@ CREATE INDEX idx_matchings_date ON matchings(matched_at DESC) WHERE deleted_at I
 -- 파일 테이블
 CREATE INDEX idx_user_files_user_id ON user_files(user_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_customer_files_customer_id ON customer_files(customer_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_customer_files_profile ON customer_files(customer_id) WHERE is_profile = TRUE AND deleted_at IS NULL;
+CREATE UNIQUE INDEX uniq_customer_files_profile ON customer_files(customer_id) WHERE is_profile = TRUE AND deleted_at IS NULL;
 
 -- 메모 테이블
 CREATE INDEX idx_user_memos_user_id ON user_memos(user_id) WHERE deleted_at IS NULL;
@@ -419,45 +419,4 @@ BEFORE UPDATE ON matching_memos FOR EACH ROW EXECUTE FUNCTION update_updated_at_
 CREATE TRIGGER update_tags_updated_at
 BEFORE UPDATE ON tags FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- ================================================
--- 18. 샘플 데이터 삽입
--- ================================================
-
--- 보안 질문 샘플
-INSERT INTO security_questions (question_text) VALUES
-('첫 번째 반려동물의 이름은?'),
-('어머니의 결혼 전 성은?'),
-('태어난 도시는?'),
-('가장 좋아하는 음식은?'),
-('첫 직장의 이름은?');
-
--- 샘플 사용자 (중개인)
--- 비밀번호: password123 (실제로는 bcrypt 해시 사용)
-INSERT INTO users (username, password_hash, security_question_id, security_answer, phone, default_employer_fee_rate, default_employee_fee_rate) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1, '멍멍이', '010-1111-2222', 10.00, 10.00),
-('agent01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 2, '김', '010-3333-4444', 12.00, 8.00),
-('agent02', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 3, '부산', '010-5555-6666', 0.00, 0.00);
-
--- 샘플 고객
-INSERT INTO customers (user_id, name, birth_date, phone, address, customer_type) VALUES
-(2, '홍길동', '1985-03-20', '010-1234-5678', '서울특별시 강남구', 'employer'),
-(2, '김철수', '1990-07-15', '010-9876-5432', '서울특별시 서초구', 'employee'),
-(2, '이영희', '1988-11-30', '010-5555-6666', '경기도 성남시', 'both');
-
--- 샘플 구인 공고
-INSERT INTO job_postings (customer_id, salary, description, employer_fee_rate, is_favorite) VALUES
-(1, 3500000, '프론트엔드 개발자 구합니다. React 경험 필수.', 12.00, TRUE),
-(1, 4000000, '백엔드 개발자 구합니다. Node.js 또는 Python 경험자.', NULL, FALSE),
-(3, 3800000, '풀스택 개발자 구합니다. React + Node.js 경험자 우대.', 10.00, TRUE);
-
--- 샘플 구직 공고
-INSERT INTO job_seeking_postings (customer_id, desired_salary, description, preferred_location, employee_fee_rate, is_favorite) VALUES
-(2, 3500000, 'React 개발 3년 경력. Next.js 가능.', '서울 강남/서초', 8.00, TRUE),
-(3, 3000000, 'Python 개발 2년 경력. Django, FastAPI 경험.', '서울/경기', NULL, FALSE);
-
--- 샘플 매칭
-INSERT INTO matchings (job_posting_id, job_seeking_posting_id, agreed_salary, employer_fee_rate, employee_fee_rate) VALUES
-(1, 1, 3500000, 12.00, 8.00);
-
--- 완료 메시지
-SELECT '✅ 데이터베이스 스키마가 성공적으로 생성되었습니다.' AS status;
+-- 스키마 생성 완료

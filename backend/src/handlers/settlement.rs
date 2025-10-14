@@ -35,6 +35,17 @@ pub async fn update_job_posting_settlement(
     Path(posting_id): Path<i64>,
     Json(payload): Json<UpdateSettlementRequest>,
 ) -> Result<Json<JobPostingResponse>, (StatusCode, Json<ErrorResponse>)> {
+    if payload.settlement_status.is_none()
+        && payload.settlement_amount.is_none()
+        && payload.settlement_memo.is_none()
+    {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "업데이트할 정산 정보를 제공해주세요".to_string(),
+            }),
+        ));
+    }
     // Get the posting to verify ownership
     let existing = job_posting::get_job_posting_by_id(&pool, posting_id)
         .await
@@ -121,6 +132,17 @@ pub async fn update_job_seeking_settlement(
     Path(seeking_id): Path<i64>,
     Json(payload): Json<UpdateSettlementRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    if payload.settlement_status.is_none()
+        && payload.settlement_amount.is_none()
+        && payload.settlement_memo.is_none()
+    {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "업데이트할 정산 정보를 제공해주세요".to_string(),
+            }),
+        ));
+    }
     // Get the seeking to verify ownership
     let existing = job_seeking::get_job_seeking_posting_by_id(&pool, seeking_id)
         .await
