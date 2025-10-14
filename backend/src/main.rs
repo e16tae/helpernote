@@ -3,6 +3,7 @@
 
 use axum::{
     extract::FromRef,
+    http::HeaderValue,
     middleware::{from_fn, from_fn_with_state},
     routing::{delete, get, post, put},
     Router,
@@ -320,15 +321,13 @@ async fn main() {
         CorsLayer::permissive()
     } else {
         // Production: restrictive CORS
+        let allowed_origin_values: Vec<HeaderValue> = config
+            .allowed_origins
+            .iter()
+            .filter_map(|origin| origin.parse().ok())
+            .collect();
         CorsLayer::new()
-            .allow_origin(
-                [
-                    "https://helpernote.my",
-                    "https://www.helpernote.my",
-                    "https://api.helpernote.my",
-                ]
-                .map(|s| s.parse().unwrap()),
-            )
+            .allow_origin(allowed_origin_values)
             .allow_methods([
                 axum::http::Method::GET,
                 axum::http::Method::POST,
@@ -346,9 +345,15 @@ async fn main() {
     };
 
     // Combine routes with global rate limiting
+    let csrf_config = config.clone();
+
     let app = Router::new()
         .merge(public_routes)
         .merge(protected_routes)
+        .layer(from_fn_with_state(
+            csrf_config,
+            middleware::csrf::csrf_protect,
+        ))
         .layer(from_fn(middleware::rate_limit::rate_limit_middleware))
         .layer(cors)
         .with_state(app_state);

@@ -11,10 +11,26 @@ pub struct Config {
     pub minio_secret_key: String,
     pub minio_bucket: String,
     pub cookie_domain: Option<String>,
+    pub allowed_origins: Vec<String>,
 }
 
 impl Config {
     pub fn from_env() -> Result<Self, env::VarError> {
+        let allowed_origins = env::var("ALLOWED_ORIGINS")
+            .unwrap_or_else(|_| {
+                "http://localhost:3000,https://helpernote.my,https://www.helpernote.my,https://api.helpernote.my".to_string()
+            })
+            .split(',')
+            .filter_map(|origin| {
+                let trimmed = origin.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed.to_string())
+                }
+            })
+            .collect();
+
         Ok(Config {
             database_url: env::var("DATABASE_URL")?,
             jwt_secret: env::var("JWT_SECRET")?,
@@ -31,6 +47,7 @@ impl Config {
             minio_secret_key: env::var("MINIO_SECRET_KEY")?,
             minio_bucket: env::var("MINIO_BUCKET").unwrap_or_else(|_| "helpernote".to_string()),
             cookie_domain: env::var("COOKIE_DOMAIN").ok(),
+            allowed_origins,
         })
     }
 }
