@@ -108,37 +108,26 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## Kubernetes Secrets
 
-1. **PostgreSQL 자격 증명**
+### Sealed Secrets 사용하는 방법
+1. `k8s/base/secrets.example.yaml`을 복사해 실제 값을 채웁니다 (또는 `.env` 파일 준비).
+2. `./scripts/seal-secrets.sh` 실행
    ```bash
-   kubectl create secret generic postgres-secret \
-     --from-literal=username=helpernote \
-     --from-literal=password='CHANGE_ME' \
-     --namespace=helpernote
+   ./scripts/seal-secrets.sh \\
+     --manifest k8s/base/secrets.example.yaml \\
+     --out k8s/sealed-secrets/platform-secrets.sealedsecret.yaml
+
+   ./scripts/seal-secrets.sh \\
+     --env-file backend/.env.production \\
+     --name backend-secret \\
+     --namespace helpernote \\
+     --out k8s/sealed-secrets/backend-secret.sealedsecret.yaml
    ```
-2. **백엔드 비밀**
-   ```bash
-   kubectl create secret generic backend-secret \
-     --from-literal=database-url='postgresql://user:pass@prod-postgres:5432/helpernote' \
-     --from-literal=jwt-secret='BASE64_RANDOM_64' \
-     --from-literal=minio-access-key='YOUR_KEY' \
-     --from-literal=minio-secret-key='YOUR_SECRET' \
-     --namespace=helpernote
-   ```
-3. **MinIO 루트 계정 (선택)**
-   ```bash
-   kubectl create secret generic minio-root \
-     --from-literal=root-user='admin' \
-     --from-literal=root-password='CHANGE_ME' \
-     --namespace=helpernote
-   ```
-4. **GHCR Secret**
-   ```bash
-   kubectl create secret docker-registry ghcr-secret \
-     --docker-server=ghcr.io \
-     --docker-username=YOUR_GITHUB_USERNAME \
-     --docker-password=YOUR_GITHUB_PAT \
-     --namespace=helpernote
-   ```
+3. 결과 파일을 커밋 → ArgoCD가 자동으로 Secret을 생성
+
+### 기타 Secret
+- GHCR Pull Secret: `kubectl create secret docker-registry ghcr-secret ...`
+- TLS Secret: `kubectl create secret tls helpernote-wildcard-tls ...` 또는 cert-manager 사용
+- MinIO 루트 계정은 가능하면 별도 사용자 키를 생성해 SealedSecret으로 관리합니다.
 
 ## GitHub Actions Secrets
 
@@ -163,4 +152,3 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - **MinIO 업로드 실패**: 버킷 권한과 Access Key/Secret Key 설정을 확인합니다.
 - **프런트 빌드 시 API URL 누락**: `NEXT_PUBLIC_API_URL` 환경 변수 설정을 검토합니다.
 - **데이터베이스 연결 오류**: `DATABASE_URL` 문자열과 네임스페이스/서비스 이름이 일치하는지 확인합니다.
-
