@@ -215,7 +215,7 @@ describe('RegisterPage', () => {
         title: '성공',
         description: '회원가입이 완료되었습니다!',
       });
-      expect(mockPush).toHaveBeenCalledWith('/login');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
   });
 

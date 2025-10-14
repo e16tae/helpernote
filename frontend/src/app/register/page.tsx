@@ -89,7 +89,7 @@ export default function RegisterPage() {
         title: "성공",
         description: "회원가입이 완료되었습니다!",
       });
-      router.push("/login");
+      router.push("/dashboard");
     } catch (err: any) {
       console.error("Registration failed:", err);
       const errorMessage = getErrorMessage(err);

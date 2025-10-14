@@ -24,7 +24,10 @@
 ```bash
 DATABASE_URL=postgres://helpernote:CHANGE_ME@prod-postgres:5432/helpernote
 JWT_SECRET=CHANGE_ME_RANDOM_64_CHARS
+COOKIE_DOMAIN=.helpernote.my
 ```
+> Tip: `COOKIE_DOMAIN`은 민감 정보가 아니므로 GitHub Actions에서 **Repository Variables** 로 관리해도 편리합니다.  
+> (예: `Repository settings → Secrets and variables → Actions → Variables` 에 `COOKIE_DOMAIN=.helpernote.my` 등록)
 
 ### minio-secret
 ```bash

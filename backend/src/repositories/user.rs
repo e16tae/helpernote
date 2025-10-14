@@ -42,9 +42,9 @@ impl UserRepository {
             return Err(UserRepositoryError::UsernameExists);
         }
 
-        // Default fee rates
-        let default_employer_fee = Decimal::new(15, 2); // 0.15 (15%)
-        let default_employee_fee = Decimal::new(10, 2); // 0.10 (10%)
+        // Default fee rates (stored as whole-number percentages)
+        let default_employer_fee = Decimal::from(15);
+        let default_employee_fee = Decimal::from(10);
 
         // Create new user
         let now = Local::now().naive_local();
