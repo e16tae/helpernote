@@ -134,11 +134,9 @@ fn extract_token(req: &Request) -> Option<String> {
         .and_then(|cookie_header| {
             cookie_header.split(';').find_map(|pair| {
                 let trimmed = pair.trim();
-                if let Some(value) = trimmed.strip_prefix("token=") {
-                    Some(value.to_string())
-                } else {
-                    None
-                }
+                trimmed
+                    .strip_prefix("token=")
+                    .map(|value| value.to_string())
             })
         })
 }

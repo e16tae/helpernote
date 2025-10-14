@@ -129,12 +129,8 @@ pub async fn get_dashboard_stats(
     })?;
 
     let matchings_count: i64 = stats.try_get("count").unwrap_or(0);
-    let total_revenue: Decimal = stats
-        .try_get("total_revenue")
-        .unwrap_or_else(|_| Decimal::ZERO);
-    let pending_amount: Decimal = stats
-        .try_get("pending_amount")
-        .unwrap_or_else(|_| Decimal::ZERO);
+    let total_revenue: Decimal = stats.try_get("total_revenue").unwrap_or(Decimal::ZERO);
+    let pending_amount: Decimal = stats.try_get("pending_amount").unwrap_or(Decimal::ZERO);
 
     Ok(Json(DashboardStatsResponse {
         total_customers: customer_count,
