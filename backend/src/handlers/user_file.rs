@@ -12,11 +12,6 @@ use crate::models::file::UserFile;
 use crate::repositories::file;
 
 #[derive(Debug, Serialize)]
-pub struct UserFileResponse {
-    pub file: UserFile,
-}
-
-#[derive(Debug, Serialize)]
 pub struct UserFilesListResponse {
     pub files: Vec<UserFile>,
     pub total: usize,
