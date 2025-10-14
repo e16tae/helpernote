@@ -1,0 +1,95 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17-alpine
+    container_name: helpernote-postgres
+    environment:
+      POSTGRES_DB: helpernote
+      POSTGRES_USER: helpernote
+      POSTGRES_PASSWORD: helpernote
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.docker/postgres-data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpernote"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - helpernote-network
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: helpernote-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./.docker/minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - helpernote-network
+
+  # Backend (Rust/Axum)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: helpernote-backend
+    environment:
+      DATABASE_URL: postgres://helpernote:helpernote@postgres:5432/helpernote
+      JWT_SECRET: your-secret-key-change-in-production
+      JWT_EXPIRATION: 3600
+      PORT: 8000
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: helpernote
+      RUST_LOG: debug
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - helpernote-network
+    restart: unless-stopped
+
+  # Frontend (Next.js 15)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: helpernote-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - helpernote-network
+    restart: unless-stopped
+
+networks:
+  helpernote-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  minio-data:

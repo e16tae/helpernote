@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE customers\n        SET deleted_at = CURRENT_TIMESTAMP\n        WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "098d42a355d1e8a64bed6e4f619f924931409e3b411a34816be95e2160963979"
+}

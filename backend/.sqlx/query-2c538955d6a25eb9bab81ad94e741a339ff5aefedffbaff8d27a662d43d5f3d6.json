@@ -1,0 +1,121 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    m.id, m.job_posting_id, m.job_seeking_posting_id, m.matched_at as \"matched_at!\", m.agreed_salary,\n                    m.employer_fee_rate, m.employee_fee_rate, m.employer_fee_amount, m.employee_fee_amount,\n                    m.matching_status as \"matching_status!: MatchingStatus\",\n                    m.cancellation_reason, m.cancelled_at, m.cancelled_by, m.completed_at,\n                    m.created_at as \"created_at!\", m.updated_at as \"updated_at!\", m.deleted_at\n                FROM matchings m\n                INNER JOIN job_postings jp ON m.job_posting_id = jp.id\n                INNER JOIN customers c ON jp.customer_id = c.id\n                WHERE c.user_id = $1\n                    AND m.matching_status = $2\n                    AND m.deleted_at IS NULL\n                ORDER BY m.matched_at DESC\n                LIMIT $3 OFFSET $4\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "job_posting_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "job_seeking_posting_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "matched_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "agreed_salary",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "employer_fee_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "employee_fee_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "employer_fee_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "employee_fee_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "matching_status!: MatchingStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "cancellation_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "cancelled_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "cancelled_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "completed_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 16,
+        "name": "deleted_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2c538955d6a25eb9bab81ad94e741a339ff5aefedffbaff8d27a662d43d5f3d6"
+}

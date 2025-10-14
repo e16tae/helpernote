@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE user_files\n        SET deleted_at = CURRENT_TIMESTAMP\n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a4f1502f3c69525550ad602de4327449f382fe34f86c2cfde6b3f0057dadd99c"
+}

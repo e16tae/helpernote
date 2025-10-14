@@ -1,0 +1,105 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    jsp.id, jsp.customer_id, jsp.desired_salary, jsp.description,\n                    jsp.preferred_location, jsp.employee_fee_rate,\n                    jsp.settlement_status as \"settlement_status!: SettlementStatus\",\n                    jsp.settlement_amount, jsp.settlement_memo,\n                    jsp.posting_status as \"posting_status!: PostingStatus\",\n                    jsp.is_favorite as \"is_favorite!\", jsp.created_at as \"created_at!\", jsp.updated_at as \"updated_at!\", jsp.deleted_at\n                FROM job_seeking_postings jsp\n                INNER JOIN customers c ON jsp.customer_id = c.id\n                WHERE c.user_id = $1\n                    AND jsp.posting_status = $2\n                    AND jsp.settlement_status = $3\n                    AND jsp.preferred_location ILIKE $4\n                    AND jsp.deleted_at IS NULL\n                ORDER BY jsp.is_favorite DESC, jsp.created_at DESC\n                LIMIT $5 OFFSET $6\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "customer_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "desired_salary",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "preferred_location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "employee_fee_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "settlement_status!: SettlementStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "settlement_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "settlement_memo",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "posting_status!: PostingStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_favorite!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 13,
+        "name": "deleted_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "af77f164177520398fc526c190f540a1e640687e7b79a31dc9168281b98d2335"
+}

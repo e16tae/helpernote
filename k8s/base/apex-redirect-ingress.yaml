@@ -1,0 +1,29 @@
+# Redirect apex domain (helpernote.my) to www subdomain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: helpernote-apex-redirect
+  annotations:
+    kubernetes.io/ingress.class: kong
+    konghq.com/protocols: "https"
+    konghq.com/https-redirect-status-code: "301"
+    # Redirect to www subdomain
+    konghq.com/redirect-url: "https://www.helpernote.my"
+    konghq.com/redirect-status: "301"
+spec:
+  ingressClassName: kong
+  rules:
+    - host: helpernote.my
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - helpernote.my
+      secretName: helpernote-tls

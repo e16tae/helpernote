@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+target/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Kubernetes secrets (use secrets.example.yaml as template)
+k8s/base/secrets.yaml
+k8s/overlays/*/secrets.yaml
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# MinIO data
+.docker/minio-data/
+
+# Postgres data
+.docker/postgres-data/
+
+# Archived documentation
+.archived-docs/

@@ -1,0 +1,6 @@
+# Ignore actual secrets
+*-secret.yaml
+secret-*.yaml
+
+# Ignore local Kustomize builds
+kustomization-build.yaml

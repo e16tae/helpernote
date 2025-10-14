@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE job_seeking_postings\n        SET deleted_at = CURRENT_TIMESTAMP\n        WHERE id = $1 AND deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "68d666a73f8570f4deb7319bbaf7dcc0b630a7c864ba2b626ee0c7fae147548d"
+}

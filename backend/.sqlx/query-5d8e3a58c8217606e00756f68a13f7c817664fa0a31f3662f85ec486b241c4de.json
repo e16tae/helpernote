@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE customer_files\n        SET is_profile = false, updated_at = CURRENT_TIMESTAMP\n        WHERE customer_id = $1 AND deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5d8e3a58c8217606e00756f68a13f7c817664fa0a31f3662f85ec486b241c4de"
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Helpernote - 취업 알선 중개 플랫폼",
+  "short_name": "Helpernote",
+  "description": "구인자와 구직자를 연결하는 전문 취업 알선 중개 서비스",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "ko",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "scope": "/"
+}

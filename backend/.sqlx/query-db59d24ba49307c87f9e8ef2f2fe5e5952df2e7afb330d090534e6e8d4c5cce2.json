@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO matching_memos (matching_id, memo_content, created_by)\n        VALUES ($1, $2, $3)\n        RETURNING id, matching_id, memo_content, created_by, created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "matching_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "memo_content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "deleted_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "db59d24ba49307c87f9e8ef2f2fe5e5952df2e7afb330d090534e6e8d4c5cce2"
+}
