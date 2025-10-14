@@ -28,7 +28,7 @@ Kong Gateway → https://www.example.com
 2. **레지스트리**: GitHub Container Registry (PAT 권한: `repo`, `write:packages`)
 3. **Kubernetes**: 1.25+, StorageClass, cert-manager(선택), Kong Ingress
 4. **ArgoCD**: CLI와 관리자/CI 계정 토큰 발급
-5. **Secrets**: [환경 구성 문서](./environment.md)에 따라 K8s Secret과 GitHub Secrets 생성
+5. **Secrets**: [환경 구성 문서](./environment.md)에 따라 `./scripts/seal-secrets.sh`로 SealedSecret을 생성해 `k8s/sealed-secrets/`에 커밋하고, GHCR/TLS/GitHub Secrets도 준비
 
 ## 로컬 개발 (Docker Compose)
 
@@ -93,7 +93,7 @@ argocd app sync helpernote-production
 
 1. **시크릿 적용**  
    ```bash
-   kubectl apply -f k8s/base/secrets.yaml
+   kubectl apply -k k8s/sealed-secrets
    kubectl create secret docker-registry ghcr-secret ... -n helpernote
    ```
 2. **TLS 인증서**
@@ -155,4 +155,3 @@ argocd app delete helpernote-production --cascade
 kubectl delete namespace helpernote
 make down  # 로컬 Docker Compose 정리
 ```
-

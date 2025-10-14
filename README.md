@@ -76,3 +76,4 @@ make down            # 로컬 리소스 정리
 - PostgreSQL/MinIO 백업과 복구 테스트를 월 1회 이상 수행합니다.
 - 공개 저장소로 전환할 때는 `reset-git-history.sh` 스크립트로 히스토리를 정리하세요.
 - 자동화 에이전트 작업은 `agent/<issue-id>-slug` 브랜치에서 진행하고, 사람 검토 후 develop/main에 반영합니다.
+- 민감한 환경 변수는 `./scripts/seal-secrets.sh`로 SealedSecret을 생성해 `k8s/sealed-secrets/`에 커밋합니다.
