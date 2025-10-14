@@ -20,7 +20,7 @@ mod repositories;
 mod services;
 
 #[derive(Clone, FromRef)]
-struct AppState {
+pub struct AppState {
     pool: PgPool,
     config: config::Config,
 }
@@ -46,6 +46,11 @@ async fn main() {
         .connect(&config.database_url)
         .await
         .expect("Failed to connect to database");
+
+    let app_state = AppState {
+        pool: db_pool.clone(),
+        config: config.clone(),
+    };
 
     // Run migrations automatically on startup
     // Temporarily commented out for testing - schema.sql already initializes DB
@@ -304,15 +309,9 @@ async fn main() {
         .route("/api/tags/{id}", put(handlers::tag::update_tag))
         .route("/api/tags/{id}", delete(handlers::tag::delete_tag))
         .layer(from_fn_with_state(
-            db_pool.clone(),
+            app_state.clone(),
             middleware::auth::auth_middleware,
         ));
-
-    // Create application state
-    let app_state = AppState {
-        pool: db_pool,
-        config: config.clone(),
-    };
 
     // Configure CORS
     // In production, replace with specific origins

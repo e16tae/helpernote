@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use bytes::BytesMut;
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -112,13 +113,10 @@ pub async fn upload_user_file(
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<crate::models::file::UploadFileResponse>, (StatusCode, Json<ErrorResponse>)> {
     use crate::models::file::FileType;
-    use axum::body::Bytes;
-    use s3::creds::Credentials;
-    use s3::{Bucket, Region};
     use uuid::Uuid;
 
     // Get multipart field
-    let field = multipart
+    let mut field = multipart
         .next_field()
         .await
         .map_err(|e| {
@@ -142,8 +140,10 @@ pub async fn upload_user_file(
     let original_filename = field.file_name().map(|s| s.to_string());
     let content_type = field.content_type().map(|s| s.to_string());
 
-    // Read file data
-    let data = field.bytes().await.map_err(|e| {
+    // Read file data with size limit
+    const MAX_UPLOAD_SIZE_BYTES: usize = 10 * 1024 * 1024; // 10 MB
+    let mut data = BytesMut::new();
+    while let Some(chunk) = field.chunk().await.map_err(|e| {
         tracing::error!("Failed to read file bytes: {:?}", e);
         (
             StatusCode::BAD_REQUEST,
@@ -151,7 +151,18 @@ pub async fn upload_user_file(
                 error: "Failed to read file data".to_string(),
             }),
         )
-    })?;
+    })? {
+        if data.len() + chunk.len() > MAX_UPLOAD_SIZE_BYTES {
+            return Err((
+                StatusCode::PAYLOAD_TOO_LARGE,
+                Json(ErrorResponse {
+                    error: "File exceeds 10MB limit".to_string(),
+                }),
+            ));
+        }
+        data.extend_from_slice(&chunk);
+    }
+    let data = data.freeze();
 
     // Determine file type
     let file_type = content_type
@@ -168,7 +179,7 @@ pub async fn upload_user_file(
     let file_path = format!("users/{}/{}", user.user_id, file_name);
 
     // Upload to MinIO
-    upload_to_minio(&config, &file_path, data.clone())
+    upload_to_minio(&config, &file_path, &data)
         .await
         .map_err(|e| {
             tracing::error!("Failed to upload to MinIO: {:?}", e);
@@ -217,7 +228,7 @@ pub async fn upload_user_file(
 async fn upload_to_minio(
     config: &crate::config::Config,
     path: &str,
-    data: axum::body::Bytes,
+    data: &[u8],
 ) -> Result<(), String> {
     use s3::creds::Credentials;
     use s3::{Bucket, Region};
@@ -241,7 +252,7 @@ async fn upload_to_minio(
         .with_path_style();
 
     bucket
-        .put_object(path, &data)
+        .put_object(path, data)
         .await
         .map_err(|e| format!("Failed to put object: {}", e))?;
 
