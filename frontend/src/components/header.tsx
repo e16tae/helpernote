@@ -17,6 +17,7 @@ import { MobileSidebar } from "@/components/sidebar";
 import { authApi } from "@/lib/auth";
 import { User } from "@/types/user";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isAxiosError } from "axios";
 
 export function Header() {
   const router = useRouter();
@@ -25,19 +26,22 @@ export function Header() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    const fetchUser = async () => {
+      try {
+        const userData = await authApi.getCurrentUser();
+        setUser(userData);
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+        if (isAxiosError(error) && error.response?.status === 401) {
+          router.push("/login");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchUser = async () => {
-    try {
-      const userData = await authApi.getCurrentUser();
-      setUser(userData);
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    void fetchUser();
+  }, [router]);
 
   const handleLogout = async () => {
     try {

@@ -71,7 +71,8 @@ function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
     <nav className="space-y-1">
       {menuItems.map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href;
+        const isActive =
+          pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}

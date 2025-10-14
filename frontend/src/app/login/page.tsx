@@ -35,6 +35,7 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
+    setFocus,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -54,6 +55,7 @@ export default function LoginPage() {
         type: "manual",
         message: errorMessage,
       });
+      setFocus("username");
     }
   };
 

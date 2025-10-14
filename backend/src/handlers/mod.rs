@@ -3,6 +3,7 @@ pub mod customer;
 pub mod dashboard;
 pub mod file;
 pub mod health;
+pub mod helpers;
 pub mod job_posting;
 pub mod job_seeking;
 pub mod matching;
