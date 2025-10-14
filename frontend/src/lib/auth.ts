@@ -1,10 +1,11 @@
 import { apiClient } from "./api-client";
-import { LoginRequest, LoginResponse, RegisterRequest, User } from "@/types/user";
+import { AuthResponse, LoginRequest, RegisterRequest, User } from "@/types/user";
 
 export const authApi = {
-  login: async (data: LoginRequest): Promise<LoginResponse> => {
+  login: async (data: LoginRequest): Promise<User> => {
     const response = await apiClient.post("/api/auth/login", data);
-    return response.data as LoginResponse;
+    const { user } = response.data as AuthResponse;
+    return user;
   },
 
   register: async (data: RegisterRequest): Promise<void> => {

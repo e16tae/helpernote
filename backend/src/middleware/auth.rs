@@ -27,6 +27,7 @@ pub struct AuthErrorResponse {
 /// Middleware to authenticate requests using JWT tokens
 pub async fn auth_middleware(
     State(pool): State<PgPool>,
+    State(config): State<Config>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<AuthErrorResponse>)> {
@@ -36,16 +37,6 @@ pub async fn auth_middleware(
             StatusCode::UNAUTHORIZED,
             Json(AuthErrorResponse {
                 error: "Missing authentication token".to_string(),
-            }),
-        )
-    })?;
-
-    // Get config and validate token
-    let config = Config::from_env().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(AuthErrorResponse {
-                error: format!("Config error: {}", e),
             }),
         )
     })?;
@@ -141,15 +132,13 @@ fn extract_token(req: &Request) -> Option<String> {
         .get(header::COOKIE)
         .and_then(|header| header.to_str().ok())
         .and_then(|cookie_header| {
-            cookie_header
-                .split(';')
-                .find_map(|pair| {
-                    let trimmed = pair.trim();
-                    if let Some(value) = trimmed.strip_prefix("token=") {
-                        Some(value.to_string())
-                    } else {
-                        None
-                    }
-                })
+            cookie_header.split(';').find_map(|pair| {
+                let trimmed = pair.trim();
+                if let Some(value) = trimmed.strip_prefix("token=") {
+                    Some(value.to_string())
+                } else {
+                    None
+                }
+            })
         })
 }

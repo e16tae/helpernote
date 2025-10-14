@@ -1124,6 +1124,7 @@ dependencies = [
  "axum 0.8.6",
  "axum-test",
  "bcrypt",
+ "bytes",
  "chrono",
  "dotenvy",
  "http-body-util",

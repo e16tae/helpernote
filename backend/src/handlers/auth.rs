@@ -26,8 +26,6 @@ pub struct RegisterRequest {
 
 #[derive(Debug, Serialize)]
 pub struct AuthResponse {
-    pub access_token: String,
-    pub refresh_token: String,
     pub user: UserInfo,
 }
 
@@ -52,6 +50,7 @@ impl ErrorResponse {
 
 pub async fn register(
     State(pool): State<PgPool>,
+    State(config): State<Config>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
     // Validate input
@@ -73,6 +72,18 @@ pub async fn register(
         )
     })?;
 
+    // Normalize and hash security answer
+    let normalized_security_answer = payload.security_answer.trim().to_lowercase();
+    let security_answer_hash = hash_password(&normalized_security_answer).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(format!(
+                "Security answer hashing failed: {}",
+                e
+            ))),
+        )
+    })?;
+
     // Create user repository
     let user_repo = UserRepository::new(pool.clone());
 
@@ -82,7 +93,7 @@ pub async fn register(
             &payload.username,
             &password_hash,
             payload.security_question_id,
-            &payload.security_answer,
+            &security_answer_hash,
             payload.phone.as_deref(),
         )
         .await
@@ -96,14 +107,6 @@ pub async fn register(
                 Json(ErrorResponse::new(format!("Database error: {}", e))),
             ),
         })?;
-
-    // Get config from environment (we'll need to pass this through app state in a real scenario)
-    let config = Config::from_env().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Config error: {}", e))),
-        )
-    })?;
 
     // Generate tokens
     let auth_service = AuthService::new(&config.jwt_secret, config.jwt_expiration);
@@ -135,8 +138,6 @@ pub async fn register(
     let _ = user_repo.update_last_login(user.id).await;
 
     let mut response = Json(AuthResponse {
-        access_token,
-        refresh_token,
         user: UserInfo {
             id: user.id,
             username: user.username,
@@ -159,6 +160,7 @@ pub struct LoginRequest {
 
 pub async fn login(
     State(pool): State<PgPool>,
+    State(config): State<Config>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
     // Validate input
@@ -201,14 +203,6 @@ pub async fn login(
         ));
     }
 
-    // Get config from environment
-    let config = Config::from_env().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Config error: {}", e))),
-        )
-    })?;
-
     // Generate tokens
     let auth_service = AuthService::new(&config.jwt_secret, config.jwt_expiration);
     let access_token = auth_service
@@ -239,8 +233,6 @@ pub async fn login(
     let _ = user_repo.update_last_login(user.id).await;
 
     let mut response = Json(AuthResponse {
-        access_token,
-        refresh_token,
         user: UserInfo {
             id: user.id,
             username: user.username,
@@ -259,17 +251,10 @@ pub struct RefreshRequest {
 
 pub async fn refresh_token(
     State(pool): State<PgPool>,
+    State(config): State<Config>,
     headers: HeaderMap,
     Json(payload): Json<RefreshRequest>,
 ) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
-    // Get config from environment
-    let config = Config::from_env().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(format!("Config error: {}", e))),
-        )
-    })?;
-
     let refresh_token_value = payload
         .refresh_token
         .and_then(|token| {
@@ -342,15 +327,18 @@ pub async fn refresh_token(
         })?;
 
     let mut response = Json(AuthResponse {
-        access_token: new_access_token.clone(),
-        refresh_token: new_refresh_token.clone(),
         user: UserInfo {
             id: user.id,
             username: user.username,
         },
     })
     .into_response();
-    set_auth_cookies(&config, &mut response, &new_access_token, &new_refresh_token)?;
+    set_auth_cookies(
+        &config,
+        &mut response,
+        &new_access_token,
+        &new_refresh_token,
+    )?;
 
     Ok(response)
 }
@@ -426,9 +414,10 @@ pub async fn forgot_password(
     ))
 }
 
-pub async fn logout(State(config): State<Config>) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
-    let mut response =
-        Json(serde_json::json!({ "message": "Logged out" })).into_response();
+pub async fn logout(
+    State(config): State<Config>,
+) -> Result<Response, (StatusCode, Json<ErrorResponse>)> {
+    let mut response = Json(serde_json::json!({ "message": "Logged out" })).into_response();
     clear_auth_cookies(&config, &mut response)?;
     Ok(response)
 }
@@ -464,7 +453,10 @@ fn set_auth_cookies(
     Ok(())
 }
 
-fn clear_auth_cookies(config: &Config, response: &mut Response) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+fn clear_auth_cookies(
+    config: &Config,
+    response: &mut Response,
+) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
     let domain = config.cookie_domain.as_deref();
     let clear_access = build_cookie("token", "", 0, true, Some(true), domain)?;
     let clear_refresh = build_cookie("refresh_token", "", 0, true, Some(true), domain)?;
