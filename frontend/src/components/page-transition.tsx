@@ -1,29 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-
 interface PageTransitionProps {
   children: React.ReactNode;
 }
 
 export function PageTransition({ children }: PageTransitionProps) {
-  const pathname = usePathname();
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  useEffect(() => {
-    setIsTransitioning(true);
-    const timeout = setTimeout(() => setIsTransitioning(false), 150);
-    return () => clearTimeout(timeout);
-  }, [pathname]);
-
-  return (
-    <div
-      className={`transition-opacity duration-150 ease-in-out ${
-        isTransitioning ? "opacity-0" : "opacity-100"
-      }`}
-    >
-      {children}
-    </div>
-  );
+  // 빠릿한 화면 전환을 위해 별도의 페이드 애니메이션을 적용하지 않습니다.
+  return <>{children}</>;
 }
