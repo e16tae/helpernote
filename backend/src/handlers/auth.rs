@@ -491,7 +491,12 @@ fn build_cookie(
     remove: Option<bool>,
     domain: Option<&str>,
 ) -> Result<HeaderValue, (StatusCode, Json<ErrorResponse>)> {
-    let mut cookie = format!("{}={}; Path=/; SameSite=Lax", name, value);
+    let same_site = if cfg!(debug_assertions) {
+        "Lax"
+    } else {
+        "None"
+    };
+    let mut cookie = format!("{}={}; Path=/; SameSite={}", name, value, same_site);
 
     if let Some(true) = remove {
         cookie.push_str("; Max-Age=0");
