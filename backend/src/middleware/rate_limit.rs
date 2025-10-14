@@ -6,7 +6,7 @@ use axum::{
 };
 use serde::Serialize;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::Mutex;
 
@@ -88,7 +88,8 @@ impl IntoResponse for RateLimitError {
 /// Rate limiting middleware
 /// Default: 100 requests per minute per IP
 pub async fn rate_limit_middleware(req: Request, next: Next) -> Result<Response, RateLimitError> {
-    let limiter = RateLimiter::new(100, Duration::from_secs(60));
+    static RATE_LIMITER: OnceLock<RateLimiter> = OnceLock::new();
+    let limiter = RATE_LIMITER.get_or_init(|| RateLimiter::new(100, Duration::from_secs(60)));
 
     // Extract IP from request
     let ip = req
@@ -115,7 +116,8 @@ pub async fn auth_rate_limit_middleware(
     req: Request,
     next: Next,
 ) -> Result<Response, RateLimitError> {
-    let limiter = RateLimiter::new(5, Duration::from_secs(60));
+    static AUTH_RATE_LIMITER: OnceLock<RateLimiter> = OnceLock::new();
+    let limiter = AUTH_RATE_LIMITER.get_or_init(|| RateLimiter::new(5, Duration::from_secs(60)));
 
     let ip = req
         .headers()

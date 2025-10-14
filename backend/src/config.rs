@@ -10,6 +10,7 @@ pub struct Config {
     pub minio_access_key: String,
     pub minio_secret_key: String,
     pub minio_bucket: String,
+    pub cookie_domain: Option<String>,
 }
 
 impl Config {
@@ -29,6 +30,7 @@ impl Config {
             minio_access_key: env::var("MINIO_ACCESS_KEY")?,
             minio_secret_key: env::var("MINIO_SECRET_KEY")?,
             minio_bucket: env::var("MINIO_BUCKET").unwrap_or_else(|_| "helpernote".to_string()),
+            cookie_domain: env::var("COOKIE_DOMAIN").ok(),
         })
     }
 }
