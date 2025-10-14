@@ -6,6 +6,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use crate::handlers::helpers::map_sqlx_error;
 use crate::middleware::auth::AuthUser;
 use crate::models::tag::{CreateTagRequest, Tag, UpdateTagRequest};
 use crate::repositories::{customer, tag};
@@ -54,14 +55,7 @@ pub async fn create_tag(
 ) -> Result<(StatusCode, Json<TagResponse>), (StatusCode, Json<ErrorResponse>)> {
     let tag = tag::create_tag(&pool, user.user_id, payload)
         .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("태그 생성 실패: {}", e),
-                }),
-            )
-        })?;
+        .map_err(|e| map_sqlx_error(e, "태그 생성 실패"))?;
 
     Ok((StatusCode::CREATED, Json(TagResponse { tag })))
 }
@@ -130,12 +124,7 @@ pub async fn update_tag(
                     error: "태그를 찾을 수 없습니다".to_string(),
                 }),
             ),
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("태그 수정 실패: {}", e),
-                }),
-            ),
+            _ => map_sqlx_error(e, "태그 수정 실패"),
         })?;
 
     Ok(Json(TagResponse { tag }))
@@ -149,14 +138,7 @@ pub async fn delete_tag(
 ) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
     tag::delete_tag(&pool, tag_id, user.user_id)
         .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("태그 삭제 실패: {}", e),
-                }),
-            )
-        })?;
+        .map_err(|e| map_sqlx_error(e, "태그 삭제 실패"))?;
 
     Ok(StatusCode::NO_CONTENT)
 }

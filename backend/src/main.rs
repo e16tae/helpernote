@@ -43,7 +43,7 @@ async fn main() {
 
     // Set up database connection pool
     let db_pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(config.database_max_connections)
         .connect(&config.database_url)
         .await
         .expect("Failed to connect to database");

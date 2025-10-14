@@ -5,12 +5,14 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Users, Briefcase, UserSearch, Link2, DollarSign, TrendingUp, Plus, UserPlus, FileText } from "lucide-react";
 import { toNumber, formatCurrency } from "@/lib/utils/currency";
 import { useCustomers } from "@/hooks/queries/use-customers";
 import { useJobPostings } from "@/hooks/queries/use-job-postings";
 import { useJobSeekings } from "@/hooks/queries/use-job-seekings";
 import { useMatchings } from "@/hooks/queries/use-matchings";
+import { getErrorMessage } from "@/lib/api-client";
 
 interface DashboardStats {
   totalCustomers: number;
@@ -23,15 +25,39 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   // React Query hooks
-  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
-  const { data: jobPostings = [], isLoading: isLoadingPostings } = useJobPostings();
-  const { data: jobSeekings = [], isLoading: isLoadingSeekings } = useJobSeekings();
-  const { data: matchings = [], isLoading: isLoadingMatchings } = useMatchings();
+  const customersQuery = useCustomers();
+  const jobPostingsQuery = useJobPostings();
+  const jobSeekingsQuery = useJobSeekings();
+  const matchingsQuery = useMatchings();
 
-  const loading = isLoadingCustomers || isLoadingPostings || isLoadingSeekings || isLoadingMatchings;
+  const loading =
+    customersQuery.isLoading ||
+    jobPostingsQuery.isLoading ||
+    jobSeekingsQuery.isLoading ||
+    matchingsQuery.isLoading;
+
+  const error =
+    customersQuery.error ||
+    jobPostingsQuery.error ||
+    jobSeekingsQuery.error ||
+    matchingsQuery.error;
+
+  const handleRetry = () => {
+    void Promise.all([
+      customersQuery.refetch(),
+      jobPostingsQuery.refetch(),
+      jobSeekingsQuery.refetch(),
+      matchingsQuery.refetch(),
+    ]);
+  };
 
   // Calculate statistics using useMemo
   const stats = useMemo<DashboardStats>(() => {
+    const customers = customersQuery.data ?? [];
+    const jobPostings = jobPostingsQuery.data ?? [];
+    const jobSeekings = jobSeekingsQuery.data ?? [];
+    const matchings = matchingsQuery.data ?? [];
+
     let pendingAmount = 0;
     let totalRevenue = 0;
 
@@ -62,7 +88,12 @@ export default function DashboardPage() {
       pendingAmount,
       totalRevenue,
     };
-  }, [customers, jobPostings, jobSeekings, matchings]);
+  }, [
+    customersQuery.data,
+    jobPostingsQuery.data,
+    jobSeekingsQuery.data,
+    matchingsQuery.data,
+  ]);
 
   const statCards = [
     {
@@ -108,6 +139,18 @@ export default function DashboardPage() {
       color: "text-chart-6",
     },
   ];
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTitle>데이터를 불러오지 못했습니다</AlertTitle>
+          <AlertDescription>{getErrorMessage(error)}</AlertDescription>
+        </Alert>
+        <Button onClick={handleRetry}>다시 시도</Button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

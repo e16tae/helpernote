@@ -12,6 +12,7 @@ pub struct Config {
     pub minio_bucket: String,
     pub cookie_domain: Option<String>,
     pub allowed_origins: Vec<String>,
+    pub database_max_connections: u32,
 }
 
 impl Config {
@@ -48,6 +49,11 @@ impl Config {
             minio_bucket: env::var("MINIO_BUCKET").unwrap_or_else(|_| "helpernote".to_string()),
             cookie_domain: env::var("COOKIE_DOMAIN").ok(),
             allowed_origins,
+            database_max_connections: env::var("DATABASE_MAX_CONNECTIONS")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .filter(|value| *value > 0)
+                .unwrap_or(5),
         })
     }
 }
