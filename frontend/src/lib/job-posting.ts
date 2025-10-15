@@ -3,7 +3,9 @@ import {
   JobPosting,
   JobSeekingPosting,
   CreateJobPostingRequest,
+  UpdateJobPostingRequest,
   CreateJobSeekingRequest,
+  UpdateJobSeekingRequest,
   JobPostingMemo,
   JobSeekingMemo,
 } from "@/types/job-posting";
@@ -30,7 +32,7 @@ export const jobPostingApi = {
   // Update job posting
   update: async (
     postingId: number,
-    data: Partial<CreateJobPostingRequest>
+    data: Partial<UpdateJobPostingRequest>
   ): Promise<JobPosting> => {
     const response = await apiClient.put(`/api/job-postings/${postingId}`, data);
     return response.data.job_posting;
@@ -64,7 +66,7 @@ export const jobSeekingApi = {
   // Update job seeking posting
   update: async (
     seekingId: number,
-    data: Partial<CreateJobSeekingRequest>
+    data: Partial<UpdateJobSeekingRequest>
   ): Promise<JobSeekingPosting> => {
     const response = await apiClient.put(`/api/job-seekings/${seekingId}`, data);
     return response.data.job_seeking;

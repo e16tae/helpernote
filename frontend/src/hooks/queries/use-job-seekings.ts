@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobSeekingApi } from '@/lib/job-posting';
 import { queryKeys } from '@/lib/query-keys';
-import type { CreateJobSeekingRequest } from '@/types/job-posting';
+import type { CreateJobSeekingRequest, UpdateJobSeekingRequest } from '@/types/job-posting';
 
 // Get all job seeking postings
 export function useJobSeekings() {
@@ -37,7 +37,7 @@ export function useUpdateJobSeeking() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ seekingId, data }: { seekingId: number; data: Partial<CreateJobSeekingRequest> }) =>
+    mutationFn: ({ seekingId, data }: { seekingId: number; data: Partial<UpdateJobSeekingRequest> }) =>
       jobSeekingApi.update(seekingId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.jobSeekings.all });
