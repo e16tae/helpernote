@@ -28,8 +28,14 @@ export function MemoList({ entityType, entityId, endpoint }: MemoListProps) {
       setIsLoading(true);
       setError(null);
 
-      const response = await apiClient.get<BaseMemo[]>(endpoint);
-      setMemos(response.data);
+      const response = await apiClient.get(endpoint);
+      const data = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.memos)
+          ? response.data.memos
+          : [];
+
+      setMemos(data as BaseMemo[]);
 
       logger.info(`Fetched ${response.data.length} memos`, { entityType, entityId });
     } catch (err) {
@@ -54,8 +60,9 @@ export function MemoList({ entityType, entityId, endpoint }: MemoListProps) {
         memo_content: content,
       };
 
-      const response = await apiClient.post<BaseMemo>(endpoint, request);
-      setMemos([response.data, ...memos]);
+      const response = await apiClient.post(endpoint, request);
+      const created = (response.data?.memo ?? response.data) as BaseMemo;
+      setMemos([created, ...memos]);
 
       logger.userAction(`Added memo to ${entityType}`, { entityId });
     } catch (err) {
@@ -77,8 +84,9 @@ export function MemoList({ entityType, entityId, endpoint }: MemoListProps) {
         memo_content: content,
       };
 
-      const response = await apiClient.put<BaseMemo>(`${endpoint}/${id}`, request);
-      setMemos(memos.map((memo) => (memo.id === id ? response.data : memo)));
+      const response = await apiClient.put(`${endpoint}/${id}`, request);
+      const updated = (response.data?.memo ?? response.data) as BaseMemo;
+      setMemos(memos.map((memo) => (memo.id === id ? updated : memo)));
 
       logger.userAction(`Edited memo in ${entityType}`, { entityId, memoId: id });
     } catch (err) {

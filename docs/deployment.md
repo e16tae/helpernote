@@ -46,6 +46,20 @@ make frontend-dev    # 프런트엔드 실행
 - API: http://localhost:8000  
 - MinIO 콘솔: http://localhost:9001 (기본 계정 `minioadmin/minioadmin`)
 
+### nerdctl compose 환경
+
+Docker 대신 containerd 기반 개발 환경을 사용한다면 [`nerdctl`](https://github.com/containerd/nerdctl) 의 compose 플러그인으로 동일한 서비스를 기동할 수 있습니다.
+
+```bash
+# nerdctl 설치 이후, 필요한 데이터 디렉터리 생성 및 서비스 시작
+./scripts/nerd-compose-up.sh
+
+# 선택적으로 빌드 옵션이나 서비스 필터를 전달할 수 있습니다.
+./scripts/nerd-compose-up.sh --build postgres
+```
+
+스크립트는 `nerd-compose.yaml` 을 사용하며, PostgreSQL(5432)과 MinIO(9000/9001)를 containerd 위에서 실행합니다. 기존 Docker Compose와 동일한 환경 변수를 사용하므로 `backend/.env`, `frontend/.env` 설정만 맞춰주면 됩니다.
+
 ## GitHub Actions 파이프라인
 
 워크플로: `.github/workflows/cd-production.yaml`
