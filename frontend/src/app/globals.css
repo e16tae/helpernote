@@ -93,16 +93,21 @@
       sans-serif;
   }
 
-  /* Smooth theme transitions */
-  *,
-  *::before,
-  *::after {
-    transition:
-      background-color 300ms ease-in-out,
-      border-color 300ms ease-in-out,
-      color 300ms ease-in-out,
-      fill 300ms ease-in-out,
-      stroke 300ms ease-in-out;
+  /* Targeted transitions only when the user has not asked for reduced motion */
+  @media (prefers-reduced-motion: no-preference) {
+    body,
+    button,
+    input,
+    textarea,
+    select,
+    [data-smooth-transition="true"] {
+      transition:
+        background-color 160ms ease-in-out,
+        border-color 160ms ease-in-out,
+        color 160ms ease-in-out,
+        fill 160ms ease-in-out,
+        stroke 160ms ease-in-out;
+    }
   }
 }
 

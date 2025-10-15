@@ -13,6 +13,7 @@ pub struct Config {
     pub cookie_domain: Option<String>,
     pub allowed_origins: Vec<String>,
     pub database_max_connections: u32,
+    pub run_migrations_on_start: bool,
 }
 
 impl Config {
@@ -54,6 +55,15 @@ impl Config {
                 .and_then(|value| value.parse().ok())
                 .filter(|value| *value > 0)
                 .unwrap_or(5),
+            run_migrations_on_start: env::var("RUN_MIGRATIONS_ON_START")
+                .ok()
+                .map(|value| {
+                    matches!(
+                        value.trim().to_lowercase().as_str(),
+                        "1" | "true" | "yes" | "on"
+                    )
+                })
+                .unwrap_or(true),
         })
     }
 }

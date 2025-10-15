@@ -36,7 +36,7 @@ export function isValidPhoneNumber(value: string): boolean {
   const numbers = unformatPhoneNumber(value);
 
   // 한국 전화번호: 010, 011, 016, 017, 018, 019로 시작하는 10~11자리
-  const mobileRegex = /^01[0-9]\d{7,8}$/;
+  const mobileRegex = /^01(?:0|1|6|7|8|9)\d{7,8}$/;
 
   // 지역번호: 02, 031-9 등으로 시작
   const landlineRegex = /^0(2|3[1-9]|4[1-4]|5[1-5]|6[1-4])\d{7,8}$/;
