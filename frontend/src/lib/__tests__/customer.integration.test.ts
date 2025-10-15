@@ -42,7 +42,7 @@ describe('Customer API Integration', () => {
         },
       ];
 
-      mockedApiClient.get.mockResolvedValue({ data: mockCustomers });
+      mockedApiClient.get.mockResolvedValue({ data: { customers: mockCustomers } });
 
       const result = await customerApi.getAll();
 
@@ -76,7 +76,7 @@ describe('Customer API Integration', () => {
         deleted_at: null,
       };
 
-      mockedApiClient.get.mockResolvedValue({ data: mockCustomer });
+      mockedApiClient.get.mockResolvedValue({ data: { customer: mockCustomer } });
 
       const result = await customerApi.getById(1);
 
@@ -121,7 +121,7 @@ describe('Customer API Integration', () => {
         deleted_at: null,
       };
 
-      mockedApiClient.post.mockResolvedValue({ data: createdCustomer });
+      mockedApiClient.post.mockResolvedValue({ data: { customer: createdCustomer } });
 
       const result = await customerApi.create(newCustomerData);
 
@@ -175,7 +175,7 @@ describe('Customer API Integration', () => {
         deleted_at: null,
       };
 
-      mockedApiClient.put.mockResolvedValue({ data: updatedCustomer });
+      mockedApiClient.put.mockResolvedValue({ data: { customer: updatedCustomer } });
 
       const result = await customerApi.update(1, updateData);
 
@@ -203,7 +203,7 @@ describe('Customer API Integration', () => {
         deleted_at: null,
       };
 
-      mockedApiClient.put.mockResolvedValue({ data: updatedCustomer });
+      mockedApiClient.put.mockResolvedValue({ data: { customer: updatedCustomer } });
 
       const result = await customerApi.update(1, partialUpdate as UpdateCustomerRequest);
 
@@ -257,12 +257,12 @@ describe('Customer API Integration', () => {
         deleted_at: null,
       };
 
-      mockedApiClient.post.mockResolvedValue({ data: createdCustomer });
+      mockedApiClient.post.mockResolvedValue({ data: { customer: createdCustomer } });
       const created = await customerApi.create(newCustomer);
       expect(created.id).toBe(10);
 
       // Read
-      mockedApiClient.get.mockResolvedValue({ data: createdCustomer });
+      mockedApiClient.get.mockResolvedValue({ data: { customer: createdCustomer } });
       const fetched = await customerApi.getById(10);
       expect(fetched.name).toBe('전체 테스트');
 
@@ -278,7 +278,7 @@ describe('Customer API Integration', () => {
         updated_at: '2024-01-06T00:00:00Z',
       };
 
-      mockedApiClient.put.mockResolvedValue({ data: updatedCustomer });
+      mockedApiClient.put.mockResolvedValue({ data: { customer: updatedCustomer } });
       const updated = await customerApi.update(10, updateData);
       expect(updated.name).toBe('수정된 이름');
 

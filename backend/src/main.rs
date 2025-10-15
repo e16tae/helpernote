@@ -53,12 +53,15 @@ async fn main() {
         config: config.clone(),
     };
 
-    // Run migrations automatically on startup
-    // Temporarily commented out for testing - schema.sql already initializes DB
-    // sqlx::migrate!("./migrations")
-    //     .run(&db_pool)
-    //     .await
-    //     .expect("Failed to run migrations");
+    if config.run_migrations_on_start {
+        tracing::info!("Running pending database migrations");
+        if let Err(error) = sqlx::migrate!("./migrations").run(&db_pool).await {
+            tracing::error!("Failed to run migrations: {error:?}");
+            panic!("Failed to run database migrations: {error}");
+        }
+    } else {
+        tracing::warn!("RUN_MIGRATIONS_ON_START=false – skipping database migrations");
+    }
 
     // Build application routes
     // Public routes (no authentication required)
