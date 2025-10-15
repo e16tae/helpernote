@@ -110,6 +110,7 @@ const failedQueue: Array<{
   reject: (error: unknown) => void;
   config: NonNullable<RetryAxiosRequestConfig>;
 }> = [];
+let isHandlingUnauthorized = false;
 
 function shouldAttemptRefresh(config: RetryAxiosRequestConfig): config is NonNullable<RetryAxiosRequestConfig> {
   if (!config?.url) return false;
@@ -157,26 +158,31 @@ function enqueueRequest(originalRequest: NonNullable<RetryAxiosRequestConfig>) {
 }
 
 function handleUnauthorized() {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || isHandlingUnauthorized) {
     return;
   }
 
-  const performLogout = () => {
-    if (typeof fetch === "function") {
-      fetch(`${API_URL}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      }).catch(() => {
-        // ignore
-      });
-    }
-  };
+  isHandlingUnauthorized = true;
 
-  performLogout();
+  const hasSessionCookie =
+    typeof document !== "undefined" &&
+    /(?:^|;\s*)(token|refresh_token)=/.test(document.cookie);
 
-  if (!window.location.pathname.includes("/login")) {
-    window.location.href = "/login";
+  if (hasSessionCookie && typeof fetch === "function") {
+    fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {
+      // swallow network errors when tearing down a session
+    });
   }
+
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.replace("/login");
+    return;
+  }
+
+  isHandlingUnauthorized = false;
 }
 
 // Response interceptor to handle errors

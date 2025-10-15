@@ -132,7 +132,8 @@ describe('RegisterPage', () => {
     const phoneInput = screen.getByLabelText(/연락처/);
     const submitButton = screen.getByRole('button', { name: /회원가입/ });
 
-    await user.type(phoneInput, 'invalid-phone');
+    await user.clear(phoneInput);
+    await user.type(phoneInput, '010123');
     await user.click(submitButton);
 
     await waitFor(() => {
