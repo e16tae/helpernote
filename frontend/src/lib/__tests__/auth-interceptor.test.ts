@@ -4,28 +4,41 @@ var responseInterceptor:
   | ((error: AxiosError) => Promise<unknown>)
   | undefined;
 
-function createAxiosInstance() {
-  const instance = jest.fn<(config: AxiosRequestConfig) => Promise<unknown>>((config) =>
-    Promise.resolve({ data: 'retried', config })
-  ) as jest.MockedFunction<(config: AxiosRequestConfig) => Promise<unknown>>;
+type AxiosMockHandler = (config: AxiosRequestConfig) => Promise<unknown>;
+type AxiosInstanceMock = jest.MockedFunction<AxiosMockHandler> & {
+  interceptors: {
+    response: {
+      use: jest.Mock;
+    };
+  };
+  get: jest.Mock;
+  post: jest.Mock;
+  defaults: Record<string, unknown>;
+};
 
-  instance.interceptors = {
+function createAxiosInstance(): AxiosInstanceMock {
+  const handler: AxiosMockHandler = (config) =>
+    Promise.resolve({ data: 'retried', config });
+
+  const instance = jest.fn(handler) as jest.MockedFunction<AxiosMockHandler>;
+  const axiosInstance = instance as AxiosInstanceMock;
+
+  axiosInstance.interceptors = {
     response: {
       use: jest.fn((onFulfilled: unknown, onRejected?: (error: AxiosError) => Promise<unknown>) => {
         responseInterceptor = onRejected;
-        // keep signature compatibility with axios by returning interceptor id
         return 0;
       }),
     },
   };
 
-  instance.get = jest.fn();
-  instance.post = jest.fn();
-  instance.defaults = {};
-  return instance;
+  axiosInstance.get = jest.fn();
+  axiosInstance.post = jest.fn();
+  axiosInstance.defaults = {};
+
+  return axiosInstance;
 }
 
-type AxiosInstanceMock = ReturnType<typeof createAxiosInstance>;
 type InstanceRegistry = {
   api?: AxiosInstanceMock;
   refresh?: AxiosInstanceMock;

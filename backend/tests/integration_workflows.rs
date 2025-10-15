@@ -24,9 +24,7 @@ async fn setup_pool() -> Option<PgPool> {
     };
 
     if let Err(error) = MIGRATOR.run(&pool).await {
-        eprintln!(
-            "Skipping integration tests: migration execution failed: {error:?}"
-        );
+        eprintln!("Skipping integration tests: migration execution failed: {error:?}");
         return None;
     }
 
@@ -36,7 +34,9 @@ async fn setup_pool() -> Option<PgPool> {
 #[tokio::test]
 async fn user_repository_round_trip_and_token_validation() -> Result<()> {
     let Some(pool) = setup_pool().await else {
-        eprintln!("Skipping user_repository_round_trip_and_token_validation: DATABASE_URL not available");
+        eprintln!(
+            "Skipping user_repository_round_trip_and_token_validation: DATABASE_URL not available"
+        );
         return Ok(());
     };
 
@@ -96,7 +96,9 @@ async fn user_repository_round_trip_and_token_validation() -> Result<()> {
 #[tokio::test]
 async fn matching_repository_calculates_fee_amounts() -> Result<()> {
     let Some(pool) = setup_pool().await else {
-        eprintln!("Skipping matching_repository_calculates_fee_amounts: DATABASE_URL not available");
+        eprintln!(
+            "Skipping matching_repository_calculates_fee_amounts: DATABASE_URL not available"
+        );
         return Ok(());
     };
 
