@@ -1,30 +1,14 @@
-// Allow uninlined format args - these are clearer with explicit placeholders
-#![allow(clippy::uninlined_format_args)]
-
 use axum::{
-    extract::FromRef,
     http::HeaderValue,
     middleware::{from_fn, from_fn_with_state},
     routing::{delete, get, post, put},
     Router,
 };
-use sqlx::PgPool;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod config;
-mod handlers;
-mod middleware;
-mod models;
-mod repositories;
-mod services;
-
-#[derive(Clone, FromRef)]
-pub struct AppState {
-    pool: PgPool,
-    config: config::Config,
-}
+use helpernote_backend::{config, handlers, middleware, AppState};
 
 #[tokio::main]
 async fn main() {
