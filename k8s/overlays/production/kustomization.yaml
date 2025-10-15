@@ -22,10 +22,10 @@ replicas:
 images:
   - name: ghcr.io/e16tae/helpernote-backend
     newName: ghcr.io/e16tae/helpernote-backend
-    newTag: main-11411dd
+    newTag: main-4b25a54
   - name: ghcr.io/e16tae/helpernote-frontend
     newName: ghcr.io/e16tae/helpernote-frontend
-    newTag: main-11411dd
+    newTag: main-4b25a54
 
 # patchesStrategicMerge is deprecated but still widely used and supported
 # It handles multi-document YAML files better than the new patches format
