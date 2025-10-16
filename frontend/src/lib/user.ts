@@ -64,6 +64,18 @@ export const userApi = {
     return response.data.files || [];
   },
 
+  uploadFile: async (file: File): Promise<UserFile> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post("/api/users/files", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data.file;
+  },
+
   deleteFile: async (fileId: number): Promise<void> => {
     await apiClient.delete(`/api/users/files/${fileId}`);
   },

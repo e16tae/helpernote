@@ -301,6 +301,74 @@ pub async fn upload_customer_profile_photo(
     }))
 }
 
+/// Delete customer profile photo
+pub async fn delete_customer_profile_photo(
+    AuthUser { user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    State(config): State<Config>,
+    Path(customer_id): Path<i64>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    // Verify customer ownership
+    let _customer = crate::repositories::customer::get_customer_by_id(&pool, customer_id, user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get customer: {:?}", e);
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Customer not found".to_string(),
+                }),
+            )
+        })?;
+
+    // Find profile photo
+    let profile_photo = file::get_customer_profile_photo(&pool, customer_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get profile photo: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to query profile photo".to_string(),
+                }),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Profile photo not found".to_string(),
+                }),
+            )
+        })?;
+
+    // Delete from MinIO
+    delete_from_minio(&config, &profile_photo.file_path)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete from MinIO: {:?}", e);
+            // Continue anyway - soft delete in DB is more important
+        })
+        .ok();
+
+    // Soft delete in database
+    file::delete_customer_file(&pool, profile_photo.id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete profile photo: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to delete profile photo".to_string(),
+                }),
+            )
+        })?;
+
+    Ok(Json(
+        serde_json::json!({ "message": "Profile photo deleted successfully" }),
+    ))
+}
+
 /// List customer files
 pub async fn list_customer_files(
     AuthUser { user_id, .. }: AuthUser,

@@ -171,7 +171,8 @@ async fn main() {
         )
         .route(
             "/api/customers/{id}/profile-photo",
-            post(handlers::file::upload_customer_profile_photo),
+            post(handlers::file::upload_customer_profile_photo)
+                .delete(handlers::file::delete_customer_profile_photo),
         )
         // Job posting routes
         .route(
@@ -261,6 +262,10 @@ async fn main() {
         .route("/api/matchings", post(handlers::matching::create_matching))
         .route("/api/matchings", get(handlers::matching::list_matchings))
         .route("/api/matchings/{id}", get(handlers::matching::get_matching))
+        .route(
+            "/api/matchings/{id}",
+            put(handlers::matching::update_matching),
+        )
         .route(
             "/api/matchings/{id}/status",
             put(handlers::matching::update_matching_status),
