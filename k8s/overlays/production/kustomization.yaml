@@ -27,12 +27,52 @@ images:
     newName: ghcr.io/e16tae/helpernote-frontend
     newTag: main-3e7c63f
 
-# patchesStrategicMerge is deprecated but still widely used and supported
-# It handles multi-document YAML files better than the new patches format
-patchesStrategicMerge:
-  - resources-patch.yaml
-  - ingress-patch.yaml
-  - imagepullsecrets-patch.yaml
-  - sealedsecret-backend-template-patch.yaml
-  - sealedsecret-minio-template-patch.yaml
-  - sealedsecret-postgres-template-patch.yaml
+patches:
+  - path: ingress-patch.yaml
+    target:
+      kind: Ingress
+      name: helpernote-ingress
+    options:
+      allowNameChange: true
+  - path: backend-resources-patch.yaml
+    target:
+      kind: Deployment
+      name: backend
+    options:
+      allowNameChange: true
+  - path: frontend-resources-patch.yaml
+    target:
+      kind: Deployment
+      name: frontend
+    options:
+      allowNameChange: true
+  - path: backend-imagepullsecret-patch.yaml
+    target:
+      kind: Deployment
+      name: backend
+    options:
+      allowNameChange: true
+  - path: frontend-imagepullsecret-patch.yaml
+    target:
+      kind: Deployment
+      name: frontend
+    options:
+      allowNameChange: true
+  - path: sealedsecret-backend-template-patch.yaml
+    target:
+      kind: SealedSecret
+      name: backend-secret
+    options:
+      allowNameChange: true
+  - path: sealedsecret-minio-template-patch.yaml
+    target:
+      kind: SealedSecret
+      name: minio-secret
+    options:
+      allowNameChange: true
+  - path: sealedsecret-postgres-template-patch.yaml
+    target:
+      kind: SealedSecret
+      name: postgres-secret
+    options:
+      allowNameChange: true
