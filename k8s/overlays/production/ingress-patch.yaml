@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: helpernote-ingress
+  name: prod-helpernote-ingress
   namespace: helpernote
   annotations:
     # Force HTTPS in production
@@ -24,7 +24,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: frontend
+                name: prod-frontend
                 port:
                   number: 3000
     # API subdomain - Backend
@@ -35,6 +35,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: backend
+                name: prod-backend
                 port:
                   number: 8000
