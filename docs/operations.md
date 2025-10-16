@@ -41,6 +41,7 @@
 ### 배포 전
 - [ ] `.env`, Kubernetes Secret에 실제 도메인/키가 반영되었는가?
 - [ ] `make test`(백엔드/프런트엔드)가 통과되는가?
+- [ ] Chrome DevTools Recorder 시나리오에 따라 핵심 UI 흐름을 수동 검증했는가?
 - [ ] Lighthouse ≥ 90 (Performance/Accessibility) 유지
 - [ ] MinIO 버킷 권한 및 CORS 정책 검토
 - [ ] 운영 팀 공지 (새 기능, 릴리스 노트) 준비
@@ -84,4 +85,3 @@
 - MinIO: 필요 시 버킷 버전닝/라이프사이클 정책 적용
 - 백업 위치: Cloudflare R2 또는 S3 호환 스토리지 (환경에 맞게 설정)
 - 복구 절차는 `docs/security.md` 또는 별도 런북에 상세화하고, 운영팀이 주기적으로 훈련합니다.
-

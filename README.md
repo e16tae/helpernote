@@ -56,6 +56,7 @@ make test            # 백엔드/프런트엔드 테스트
 make build           # Docker 이미지 빌드
 make down            # 로컬 리소스 정리
 ```
+- UI 시나리오 검증은 Chrome DevTools Recorder로 캡처한 절차를 따라 수동으로 진행합니다.
 
 ## 배포 개요
 - GitHub Actions가 `main` 브랜치에 push되면 백엔드/프런트엔드 Docker 이미지를 빌드하여 GHCR에 푸시합니다.

@@ -20,7 +20,6 @@ const config: Config = {
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/e2e/',
     '\\.spec\\.ts$',
   ],
   collectCoverageFrom: [
