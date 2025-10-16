@@ -39,7 +39,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/use-pagination";
 import { useCustomers } from "@/hooks/queries/use-customers";
-import { useJobPostings, useDeleteJobPosting } from "@/hooks/queries/use-job-postings";
+import { useJobPostings, useDeleteJobPosting, useUpdateJobPosting } from "@/hooks/queries/use-job-postings";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 
 const postingStatusMap: Record<PostingStatus, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   Published: { label: "게시됨", variant: "default" },
@@ -61,11 +63,13 @@ export default function JobPostingsPage() {
   const [settlementStatusFilter, setSettlementStatusFilter] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
 
   // React Query hooks
   const { data: jobPostings = [], isLoading: isLoadingPostings } = useJobPostings();
   const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
   const deleteMutation = useDeleteJobPosting();
+  const updateMutation = useUpdateJobPosting();
 
   const loading = isLoadingPostings || isLoadingCustomers;
 
@@ -105,14 +109,23 @@ export default function JobPostingsPage() {
   };
 
   const toggleFavorite = async (id: number, currentStatus: boolean) => {
-    try {
-      await apiClient.patch(`/api/job-postings/${id}`, {
-        is_favorite: !currentStatus,
-      });
-      // TODO: Create a mutation for this
-    } catch (error) {
-      console.error("Failed to toggle favorite:", error);
-    }
+    updateMutation.mutate({
+      postingId: id,
+      data: { is_favorite: !currentStatus },
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.jobPostings.all });
+      },
+      onError: (error) => {
+        console.error("Failed to toggle favorite:", error);
+        const errorMessage = getErrorMessage(error);
+        toast({
+          variant: "destructive",
+          title: "오류",
+          description: errorMessage,
+        });
+      },
+    });
   };
 
   const filteredPostings = jobPostings.filter((posting) => {

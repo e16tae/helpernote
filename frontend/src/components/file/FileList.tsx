@@ -31,7 +31,7 @@ export function FileList({ customerId, refreshTrigger }: FileListProps) {
     try {
       setLoading(true);
       const response = await fileApi.listCustomerFiles(customerId);
-      setFiles(response.files);
+      setFiles(response);
     } catch (error) {
       console.error("Failed to load files:", error);
       const errorMessage = getErrorMessage(error);
