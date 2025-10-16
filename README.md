@@ -58,6 +58,14 @@ make down            # 로컬 리소스 정리
 ```
 - UI 시나리오 검증은 Chrome DevTools Recorder로 캡처한 절차를 따라 수동으로 진행합니다.
 
+### 5. 로컬 테스트 (선택)
+```bash
+docker compose -f docker-compose.dev.yml up -d
+make test
+docker compose -f docker-compose.dev.yml down -v
+```
+- containerd 환경이라면 `./scripts/nerd-compose-up.sh` 이후 동일하게 `make test`를 실행하고, 종료 시 `nerdctl compose -f nerd-compose.yaml down -v`로 정리합니다.
+
 ## 배포 개요
 - GitHub Actions가 `main` 브랜치에 push되면 백엔드/프런트엔드 Docker 이미지를 빌드하여 GHCR에 푸시합니다.
 - 워크플로가 `k8s/overlays/production` 이미지 태그를 갱신하면 ArgoCD가 Kubernetes에 자동 배포합니다.
