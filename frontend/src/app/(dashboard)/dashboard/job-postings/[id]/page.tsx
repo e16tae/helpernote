@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Pencil, Trash2, Star, User, DollarSign, Calendar, FileText } from "lucide-react";
-import { apiClient, getErrorMessage } from "@/lib/api-client";
+import { getErrorMessage } from "@/lib/api-client";
 import { customerApi } from "@/lib/customer";
+import { jobPostingApi } from "@/lib/job-posting";
 import { JobPosting } from "@/types/job-posting";
 import { Customer } from "@/types/customer";
 import { useToast } from "@/hooks/use-toast";
@@ -47,8 +48,7 @@ export default function JobPostingDetailPage() {
   const fetchJobPosting = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/job-postings/${id}`);
-      const postingData = response.data;
+      const postingData = await jobPostingApi.getById(parseInt(id));
       setPosting(postingData);
 
       // Load customer info
@@ -81,7 +81,7 @@ export default function JobPostingDetailPage() {
     if (deleteItemId === null) return;
 
     try {
-      await apiClient.delete(`/api/job-postings/${deleteItemId}`);
+      await jobPostingApi.delete(deleteItemId);
       toast({
         title: "성공",
         description: "구인 공고가 삭제되었습니다.",
@@ -105,9 +105,7 @@ export default function JobPostingDetailPage() {
     if (!posting) return;
 
     try {
-      await apiClient.patch(`/api/job-postings/${id}`, {
-        is_favorite: !posting.is_favorite,
-      });
+      await jobPostingApi.update(parseInt(id), { is_favorite: !posting.is_favorite });
       fetchJobPosting();
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
