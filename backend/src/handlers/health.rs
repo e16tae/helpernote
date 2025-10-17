@@ -17,17 +17,16 @@ pub async fn health_check(State(pool): State<PgPool>) -> (StatusCode, Json<Healt
     START_TIME.get_or_init(std::time::Instant::now);
 
     // Check database connectivity
-    let db_ok = sqlx::query("SELECT 1")
-        .fetch_one(&pool)
-        .await
-        .is_ok();
+    let db_ok = sqlx::query("SELECT 1").fetch_one(&pool).await.is_ok();
 
-    let uptime = START_TIME
-        .get()
-        .map(|start| start.elapsed().as_secs());
+    let uptime = START_TIME.get().map(|start| start.elapsed().as_secs());
 
     let status = if db_ok { "healthy" } else { "degraded" };
-    let status_code = if db_ok { StatusCode::OK } else { StatusCode::SERVICE_UNAVAILABLE };
+    let status_code = if db_ok {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
 
     (
         status_code,

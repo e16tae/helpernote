@@ -9,7 +9,10 @@ fn main() {
     println!("Hash: {}", hash);
     println!();
     println!("SQL to update users:");
-    println!("UPDATE users SET password_hash = '{}' WHERE username IN ('admin', 'testuser');", hash);
+    println!(
+        "UPDATE users SET password_hash = '{}' WHERE username IN ('admin', 'testuser');",
+        hash
+    );
 
     // Verify
     let verified = bcrypt::verify(password, &hash).unwrap();
