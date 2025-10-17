@@ -47,6 +47,13 @@ export const fileApi = {
   },
 
   /**
+   * Delete customer profile photo
+   */
+  deleteCustomerProfilePhoto: async (customerId: number): Promise<void> => {
+    await apiClient.delete(`/api/customers/${customerId}/profile-photo`);
+  },
+
+  /**
    * List customer files
    */
   listCustomerFiles: async (customerId: number): Promise<CustomerFile[]> => {

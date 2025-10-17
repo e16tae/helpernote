@@ -98,3 +98,7 @@ jobs:
       - name: Run unit tests
         working-directory: ./frontend
         run: npm run test -- --runInBand
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build

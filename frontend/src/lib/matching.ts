@@ -26,12 +26,12 @@ export const matchingApi = {
     return response.data.matching;
   },
 
-  // Update matching
+  // Update matching (salary and fee rates)
   update: async (
     matchingId: number,
     data: UpdateMatchingRequest
   ): Promise<Matching> => {
-    const response = await apiClient.put(`/api/matchings/${matchingId}/status`, data);
+    const response = await apiClient.put(`/api/matchings/${matchingId}`, data);
     return response.data.matching;
   },
 
