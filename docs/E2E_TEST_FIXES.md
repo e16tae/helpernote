@@ -59,24 +59,28 @@ Fixed critical E2E test authentication issues across all test suites. Tests now 
 
 **Expected Issues**: Similar to customer.spec.ts - UI implementation incomplete
 
-### 4. accessibility.spec.ts (2/5 passing)
+### 4. accessibility.spec.ts (3/5 passing) ✅ Login page fixed!
 
-**Status**: Authentication fixed, real accessibility violations found
+**Status**: Login page accessibility fixed! Dashboard and customers pages have separate issues.
 
 **Fixes Applied**:
 - **Migrated from hardcoded credentials** to environment variables in dashboard and customers page tests
-
-**Accessibility Violations Found** (login page):
-1. **Missing main landmark** - Page needs `<main>` element
-2. **Link contrast insufficient** - Register link has 1.49:1 contrast ratio (needs 3:1 minimum)
-3. **No level-one heading** - Page needs an `<h1>` element
-4. **Content not in landmarks** - Multiple elements not wrapped in semantic landmarks
+- **FIXED all login page violations** (commit: 979c01d):
+  1. ✅ Added `<main>` landmark element
+  2. ✅ Improved register link contrast (text-primary → text-foreground + underline)
+  3. ✅ Added `<h1>` level-one heading
+  4. ✅ Wrapped all content in semantic landmarks
 
 **Passing Tests**:
 ```
+✓ login page should not have accessibility violations (FIXED!)
 ✓ should support keyboard navigation
 ✓ should have proper ARIA labels
 ```
+
+**Remaining Issues** (dashboard and customers pages - separate from login):
+- Dashboard: heading-order violation, region violation
+- Customers: form-field-multiple-labels, label violation, region violation
 
 ## Environment Variables Required
 
@@ -112,19 +116,19 @@ npx playwright test e2e/gap-analysis-features.spec.ts --project=chromium
 ## Next Steps
 
 ### High Priority
-1. **Accessibility fixes** - Fix the 4 violations found in login page:
-   - Add `<main>` landmark
-   - Improve link contrast ratio
-   - Add `<h1>` element
-   - Wrap content in semantic landmarks
+1. ~~**Accessibility fixes**~~ - ✅ **COMPLETED** - All login page violations fixed! (979c01d)
 
-2. **Customer CRUD implementation** - Complete the UI:
+2. **Dashboard/Customers accessibility** - Fix remaining violations:
+   - Dashboard: heading-order, region violations
+   - Customers: form-field-multiple-labels, label, region violations
+
+3. **Customer CRUD implementation** - Complete the UI:
    - Implement create customer form at `/dashboard/customers/new`
    - Add table/list display on `/dashboard/customers`
    - Implement row click navigation to detail view
    - Add edit and delete functionality
 
-3. **Matching CRUD implementation** - Similar to customers
+4. **Matching CRUD implementation** - Similar to customers
 
 ### Medium Priority
 1. Fix strict mode violations in tests by using `.first()` or more specific selectors
@@ -185,7 +189,9 @@ await page.getByText(/로그아웃|Logout/i).click();
 | auth.spec.ts | 1/7 | 7/7 ✅ | Fully functional |
 | customer.spec.ts | 0/8 | 2/8 | Auth fixed, UI incomplete |
 | matching.spec.ts | 0/9 | TBD | Auth fixed, needs testing |
-| accessibility.spec.ts | 2/5 | 2/5 | Auth fixed, violations found |
+| accessibility.spec.ts | 2/5 | 3/5 ✅ | Login page fixed! Dashboard/Customers remain |
 | gap-analysis-features.spec.ts | 3/9 | 3/6 | From previous session |
 
-**Total Improvement**: From ~6 passing tests to ~14+ passing tests across all suites
+**Total Improvement**: From ~6 passing tests to ~15+ passing tests across all suites
+
+**Latest Achievement (979c01d)**: Login page accessibility - 4 violations → 0 violations ✅
