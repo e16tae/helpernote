@@ -282,6 +282,82 @@ pub async fn complete_matching(
             )
         })?;
 
+    // Automatically update settlement amounts in job postings and job seekings
+    // Update job_posting settlement_amount with employer fee
+    if let Some(employer_fee) = matching.employer_fee_amount {
+        let _ = sqlx::query(
+            r#"
+            UPDATE job_postings
+            SET settlement_amount = COALESCE(settlement_amount, 0) + $1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(employer_fee)
+        .bind(matching.job_posting_id)
+        .execute(&pool)
+        .await;
+    }
+
+    // Update job_seeking settlement_amount with employee fee
+    if let Some(employee_fee) = matching.employee_fee_amount {
+        let _ = sqlx::query(
+            r#"
+            UPDATE job_seeking_postings
+            SET settlement_amount = COALESCE(settlement_amount, 0) + $1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(employee_fee)
+        .bind(matching.job_seeking_posting_id)
+        .execute(&pool)
+        .await;
+    }
+
+    Ok(Json(MatchingResponse { matching }))
+}
+
+/// Update matching details (salary and fee rates)
+pub async fn update_matching(
+    user: AuthUser,
+    State(pool): State<PgPool>,
+    Path(matching_id): Path<i64>,
+    Json(payload): Json<UpdateMatchingRequest>,
+) -> Result<Json<MatchingResponse>, (StatusCode, Json<ErrorResponse>)> {
+    verify_matching_ownership(&pool, matching_id, user.user_id).await?;
+
+    // Disallow status changes through this endpoint
+    if payload.matching_status.is_some() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "매칭 상태 변경은 별도의 상태 변경 API를 사용해주세요".to_string(),
+            }),
+        ));
+    }
+
+    // Disallow cancellation reason changes through this endpoint
+    if payload.cancellation_reason.is_some() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "취소 사유는 취소 API를 통해서만 설정할 수 있습니다".to_string(),
+            }),
+        ));
+    }
+
+    let matching = matching::update_matching_status(&pool, matching_id, payload)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("매칭 정보 수정 실패: {}", e),
+                }),
+            )
+        })?;
+
     Ok(Json(MatchingResponse { matching }))
 }
 

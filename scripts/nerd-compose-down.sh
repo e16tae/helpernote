@@ -16,6 +16,14 @@ if [ ! -f "$COMPOSE_FILE" ]; then
   exit 1
 fi
 
-mkdir -p "$PROJECT_ROOT/.docker/postgres-data" "$PROJECT_ROOT/.docker/minio-data"
-
-nerdctl compose -f "$COMPOSE_FILE" up -d "$@"
+# Check if --volumes flag is provided
+if [[ "${1:-}" == "--volumes" ]] || [[ "${1:-}" == "-v" ]]; then
+  echo "Stopping containers and removing volumes..."
+  nerdctl compose -f "$COMPOSE_FILE" down -v
+  echo "✅ Containers stopped and volumes removed"
+else
+  echo "Stopping containers..."
+  nerdctl compose -f "$COMPOSE_FILE" down
+  echo "✅ Containers stopped (volumes preserved)"
+  echo "💡 Use --volumes flag to also remove volumes"
+fi

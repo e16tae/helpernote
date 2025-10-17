@@ -5,17 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, User as UserIcon, DollarSign } from "lucide-react";
+import { Save, User as UserIcon, DollarSign, FileText, Upload, Trash2, File } from "lucide-react";
 import { apiClient, getErrorMessage } from "@/lib/api-client";
 import { User, UpdateUserProfileRequest } from "@/types/user";
 import { useToast } from "@/hooks/use-toast";
 import { toNumber } from "@/lib/utils/currency";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MemoList } from "@/components/memos/MemoList";
+import { userApi, UserFile } from "@/lib/user";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [userFiles, setUserFiles] = useState<UserFile[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<number | null>(null);
 
   // Profile form state
   const [phone, setPhone] = useState("");
@@ -24,6 +29,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchProfile();
+    fetchUserFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -46,6 +52,71 @@ export default function SettingsPage() {
         description: errorMessage,
       });
     }
+  };
+
+  const fetchUserFiles = async () => {
+    try {
+      const files = await userApi.getFiles();
+      setUserFiles(files);
+    } catch (error) {
+      console.error("Failed to fetch user files:", error);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingFile(true);
+      await userApi.uploadFile(file);
+      await fetchUserFiles();
+      toast({
+        title: "성공",
+        description: "파일이 업로드되었습니다.",
+      });
+    } catch (error) {
+      console.error("Failed to upload file:", error);
+      const errorMessage = getErrorMessage(error);
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: errorMessage,
+      });
+    } finally {
+      setUploadingFile(false);
+      // Reset file input
+      e.target.value = "";
+    }
+  };
+
+  const handleFileDelete = async (fileId: number) => {
+    try {
+      setDeletingFileId(fileId);
+      await userApi.deleteFile(fileId);
+      await fetchUserFiles();
+      toast({
+        title: "성공",
+        description: "파일이 삭제되었습니다.",
+      });
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+      const errorMessage = getErrorMessage(error);
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: errorMessage,
+      });
+    } finally {
+      setDeletingFileId(null);
+    }
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return "알 수 없음";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1048576) return (bytes / 1024).toFixed(2) + " KB";
+    return (bytes / 1048576).toFixed(2) + " MB";
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -268,6 +339,87 @@ export default function SettingsPage() {
           </Button>
         </div>
       </form>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-purple-500" />
+            <CardTitle>개인 메모</CardTitle>
+          </div>
+          <CardDescription>
+            업무와 관련된 개인 메모를 작성하고 관리합니다
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MemoList
+            entityType="user"
+            endpoint="/api/users/memos"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <File className="h-5 w-5 text-orange-500" />
+            <CardTitle>개인 파일</CardTitle>
+          </div>
+          <CardDescription>
+            업무와 관련된 개인 파일을 업로드하고 관리합니다
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="file-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 p-4 border-2 border-dashed rounded-lg hover:bg-muted/50 transition-colors">
+                  <Upload className="h-5 w-5" />
+                  <span>{uploadingFile ? "업로드 중..." : "파일 선택"}</span>
+                </div>
+              </Label>
+              <Input
+                id="file-upload"
+                type="file"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={uploadingFile}
+              />
+            </div>
+
+            {userFiles.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">업로드된 파일이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {userFiles.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {file.original_filename || "파일"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleString("ko-KR")}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleFileDelete(file.id)}
+                      disabled={deletingFileId === file.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

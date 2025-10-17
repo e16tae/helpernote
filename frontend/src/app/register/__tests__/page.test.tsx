@@ -159,7 +159,7 @@ describe('RegisterPage', () => {
   });
 
   // Skipping full integration test with Select component due to jsdom limitations
-  // E2E tests in e2e/register.spec.ts provide full coverage for this scenario
+  // Chrome DevTools Recorder 시나리오에서 전체 가입 흐름을 검증합니다.
   it.skip('should call API and redirect on successful registration', async () => {
     const user = userEvent.setup();
     const mockPush = jest.fn();
