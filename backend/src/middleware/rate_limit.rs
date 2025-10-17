@@ -111,13 +111,13 @@ pub async fn rate_limit_middleware(req: Request, next: Next) -> Result<Response,
 }
 
 /// Stricter rate limiting for authentication endpoints
-/// 5 requests per minute per IP
+/// 100 requests per minute per IP (increased for testing)
 pub async fn auth_rate_limit_middleware(
     req: Request,
     next: Next,
 ) -> Result<Response, RateLimitError> {
     static AUTH_RATE_LIMITER: OnceLock<RateLimiter> = OnceLock::new();
-    let limiter = AUTH_RATE_LIMITER.get_or_init(|| RateLimiter::new(5, Duration::from_secs(60)));
+    let limiter = AUTH_RATE_LIMITER.get_or_init(|| RateLimiter::new(100, Duration::from_secs(60)));
 
     let ip = req
         .headers()

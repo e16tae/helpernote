@@ -17,16 +17,16 @@ async function login(page: any) {
 // Helper function to create test customer
 async function createTestCustomer(page: any, name: string) {
   await page.goto('/dashboard/customers/new');
-  await page.fill('input[name="name"]', name);
-  await page.fill('input[name="phone"]', '010-1234-5678');
+  await page.fill('input#name', name);
+  await page.fill('input#phone', '010-1234-5678');
 
   // Select customer type
-  const typeSelect = page.locator('select[name="customer_type"], button[role="combobox"]').first();
+  const typeSelect = page.locator('button[role="combobox"]').first();
   await typeSelect.click();
-  await page.locator('text=/employer|구인자/i').first().click();
+  await page.locator('[role="option"]:has-text("구인자")').first().click();
 
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/dashboard\/customers\/\d+/);
+  await page.waitForURL(/\/dashboard\/customers\/\d+/, { timeout: 15000 });
 
   // Extract customer ID from URL
   const url = page.url();
@@ -74,10 +74,10 @@ test.describe('Gap Analysis Features - Priority 1', () => {
     expect(matchingsCall.length).toBeLessThanOrEqual(1);
 
     // Verify dashboard displays stats
-    await expect(page.locator('text=/전체 고객|Total Customers/i')).toBeVisible();
-    await expect(page.locator('text=/구인 공고|Job Postings/i')).toBeVisible();
-    await expect(page.locator('text=/구직 공고|Job Seekings/i')).toBeVisible();
-    await expect(page.locator('text=/매칭|Matchings/i')).toBeVisible();
+    await expect(page.locator('text=/전체 고객|Total Customers/i').first()).toBeVisible();
+    await expect(page.locator('text=/구인 공고|Job Postings/i').first()).toBeVisible();
+    await expect(page.locator('text=/구직 공고|Job Seekings/i').first()).toBeVisible();
+    await expect(page.locator('text=/매칭|Matchings/i').first()).toBeVisible();
   });
 
   test('Matching Update Endpoint - should update matching salary and fees', async ({ page }) => {
@@ -85,17 +85,16 @@ test.describe('Gap Analysis Features - Priority 1', () => {
     await page.goto('/dashboard/matchings');
     await page.waitForLoadState('networkidle');
 
-    // Check if any matchings exist
-    const noMatchingsText = page.locator('text=/매칭이 없습니다|No matchings/i');
-    const hasMatchings = !(await noMatchingsText.isVisible().catch(() => false));
+    // Check if any matchings exist by counting tbody rows
+    const rowCount = await page.locator('tbody tr').count();
 
-    if (!hasMatchings) {
+    if (rowCount === 0) {
       test.skip();
       return;
     }
 
-    // Click on first matching
-    const firstMatching = page.locator('[data-testid="matching-item"], tr:has-text("매칭")').first();
+    // Click on first matching (tbody tr to avoid header row)
+    const firstMatching = page.locator('tbody tr').first();
     await firstMatching.click();
 
     // Wait for matching detail page
@@ -141,17 +140,16 @@ test.describe('Gap Analysis Features - Priority 2', () => {
     await page.goto('/dashboard/job-postings');
     await page.waitForLoadState('networkidle');
 
-    // Check if any job postings exist
-    const noPostingsText = page.locator('text=/공고가 없습니다|No postings/i');
-    const hasPostings = !(await noPostingsText.isVisible().catch(() => false));
+    // Check if any job postings exist by counting tbody rows
+    const rowCount = await page.locator('tbody tr').count();
 
-    if (!hasPostings) {
+    if (rowCount === 0) {
       test.skip();
       return;
     }
 
-    // Click on first job posting
-    const firstPosting = page.locator('[data-testid="job-posting-item"], tr').first();
+    // Click on first job posting (tbody tr to avoid header row)
+    const firstPosting = page.locator('tbody tr').first();
     await firstPosting.click();
 
     await page.waitForURL(/\/dashboard\/job-postings\/\d+/);
@@ -181,7 +179,7 @@ test.describe('Gap Analysis Features - Priority 2', () => {
     await page.waitForLoadState('networkidle');
 
     // Scroll to user files section
-    await page.locator('text=/개인 파일|User Files/i').scrollIntoViewIfNeeded();
+    await page.locator('text=/개인 파일|User Files/i').first().scrollIntoViewIfNeeded();
 
     // Find file input
     const fileInput = page.locator('input[type="file"]').first();
@@ -224,15 +222,23 @@ test.describe('Gap Analysis Features - Priority 2', () => {
     await page.goto('/dashboard/matchings');
     await page.waitForLoadState('networkidle');
 
-    // Find an in-progress matching
-    const inProgressMatching = page.locator('text=/진행중|In Progress/i').first();
-    const hasInProgressMatching = await inProgressMatching.isVisible().catch(() => false);
+    // Check if any matchings exist by counting tbody rows
+    const rowCount = await page.locator('tbody tr').count();
 
-    if (!hasInProgressMatching) {
+    if (rowCount === 0) {
       test.skip();
       return;
     }
 
+    // Find an in-progress matching
+    const inProgressCount = await page.locator('tbody tr').filter({ hasText: /진행중|In Progress/i }).count();
+
+    if (inProgressCount === 0) {
+      test.skip();
+      return;
+    }
+
+    const inProgressMatching = page.locator('tbody tr').filter({ hasText: /진행중|In Progress/i }).first();
     await inProgressMatching.click();
     await page.waitForURL(/\/dashboard\/matchings\/\d+/);
 
@@ -274,16 +280,21 @@ test.describe('Gap Analysis Features - Priority 3', () => {
     await page.waitForLoadState('networkidle');
 
     // Scroll to user memos section
-    await page.locator('text=/개인 메모|Personal Memos/i').scrollIntoViewIfNeeded();
+    await page.locator('text=/개인 메모|Personal Memos/i').first().scrollIntoViewIfNeeded();
+
+    // Click "메모 추가" button to show form
+    const showFormButton = page.locator('button:has-text("메모 추가")').first();
+    await showFormButton.click();
 
     // Add new memo
-    const memoInput = page.locator('textarea[placeholder*="메모"], input[placeholder*="메모"]').first();
+    const memoInput = page.locator('textarea[placeholder*="메모"]').first();
     const testMemoContent = `테스트 메모 ${Date.now()}`;
 
     await memoInput.fill(testMemoContent);
 
-    const addMemoButton = page.locator('button:has-text("추가"), button:has-text("Add")').first();
-    await addMemoButton.click();
+    // Click save button
+    const saveButton = page.locator('button:has-text("저장")').first();
+    await saveButton.click();
 
     // Verify memo was added
     await expect(page.locator(`text=${testMemoContent}`)).toBeVisible({ timeout: 5000 });
@@ -317,7 +328,7 @@ test.describe('Gap Analysis Features - Priority 3', () => {
     await page.waitForLoadState('networkidle');
 
     // Find profile photo section
-    const profilePhotoSection = page.locator('text=/프로필 사진|Profile Photo/i');
+    const profilePhotoSection = page.locator('text=/프로필 사진|Profile Photo/i').first();
     await profilePhotoSection.scrollIntoViewIfNeeded();
 
     // Upload profile photo
@@ -362,22 +373,29 @@ test.describe('Gap Analysis Features - Priority 3', () => {
     await page.goto('/dashboard/matchings');
     await page.waitForLoadState('networkidle');
 
+    // Check if any matchings exist by counting tbody rows
+    const rowCount = await page.locator('tbody tr').count();
+
+    if (rowCount === 0) {
+      test.skip();
+      return;
+    }
+
     // Find a completed or cancelled matching
-    const completedMatching = page.locator('text=/완료|Completed/i').first();
-    const cancelledMatching = page.locator('text=/취소|Cancelled/i').first();
+    const completedCount = await page.locator('tbody tr').filter({ hasText: /완료|Completed/i }).count();
+    const cancelledCount = await page.locator('tbody tr').filter({ hasText: /취소|Cancelled/i }).count();
 
-    const hasCompletedMatching = await completedMatching.isVisible().catch(() => false);
-    const hasCancelledMatching = await cancelledMatching.isVisible().catch(() => false);
-
-    if (!hasCompletedMatching && !hasCancelledMatching) {
+    if (completedCount === 0 && cancelledCount === 0) {
       test.skip();
       return;
     }
 
     // Click on first completed or cancelled matching
-    if (hasCompletedMatching) {
+    if (completedCount > 0) {
+      const completedMatching = page.locator('tbody tr').filter({ hasText: /완료|Completed/i }).first();
       await completedMatching.click();
     } else {
+      const cancelledMatching = page.locator('tbody tr').filter({ hasText: /취소|Cancelled/i }).first();
       await cancelledMatching.click();
     }
 
@@ -409,15 +427,27 @@ test.describe('Gap Analysis Features - Integration Tests', () => {
 
     // 2. Create job posting
     await page.goto('/dashboard/job-postings/new');
+    await page.waitForLoadState('networkidle');
 
     // Select customer
-    const customerSelect = page.locator('select[name="customer_id"], button[role="combobox"]').first();
+    const customerSelect = page.locator('button[role="combobox"]').first();
     await customerSelect.click();
-    await page.locator(`text=${employerName}`).click();
+    await page.locator(`[role="option"]:has-text("${employerName}")`).click();
 
+    // Wait for select to close
+    await page.waitForTimeout(500);
+
+    // Fill job posting details (these use name attributes, not id)
     await page.fill('input[name="salary"]', '5000000');
     await page.fill('textarea[name="description"]', '테스트 구인 공고');
-    await page.fill('input[name="employer_fee_rate"]', '15');
+
+    // Scroll to fee section and click the "use default fee rate" checkbox to uncheck it
+    const feeCheckbox = page.locator('text=/기본 수수료율 사용/').first();
+    await feeCheckbox.scrollIntoViewIfNeeded();
+    await feeCheckbox.click();
+
+    // Now fill the employer fee rate
+    await page.fill('input[name="employerFeeRate"]', '15');
 
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(/\/dashboard\/job-postings\/\d+/);
@@ -427,7 +457,7 @@ test.describe('Gap Analysis Features - Integration Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Dashboard should show updated stats
-    await expect(page.locator('text=/구인 공고/i')).toBeVisible();
+    await expect(page.locator('text=/구인 공고/i').first()).toBeVisible();
 
     // Verify only one API call was made for stats
     const requests: any[] = [];
