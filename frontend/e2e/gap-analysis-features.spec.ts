@@ -390,13 +390,16 @@ test.describe('Gap Analysis Features - Priority 3', () => {
       return;
     }
 
-    // Click on first completed or cancelled matching
+    // Click on first completed or cancelled matching and track which type
+    let clickedType: 'completed' | 'cancelled';
     if (completedCount > 0) {
       const completedMatching = page.locator('tbody tr').filter({ hasText: /완료|Completed/i }).first();
       await completedMatching.click();
+      clickedType = 'completed';
     } else {
       const cancelledMatching = page.locator('tbody tr').filter({ hasText: /취소|Cancelled/i }).first();
       await cancelledMatching.click();
+      clickedType = 'cancelled';
     }
 
     await page.waitForURL(/\/dashboard\/matchings\/\d+/);
@@ -404,11 +407,11 @@ test.describe('Gap Analysis Features - Priority 3', () => {
     // Verify timestamp section is visible
     await expect(page.locator('text=/시간 정보|Time Information/i')).toBeVisible();
 
-    // Check for completed_at or cancelled_at
-    if (hasCompletedMatching) {
+    // Check for completed_at or cancelled_at based on what we clicked
+    if (clickedType === 'completed') {
       await expect(page.locator('text=/완료일시|Completed At/i')).toBeVisible();
     }
-    if (hasCancelledMatching) {
+    if (clickedType === 'cancelled') {
       await expect(page.locator('text=/취소일시|Cancelled At/i')).toBeVisible();
     }
   });
