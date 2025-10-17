@@ -514,6 +514,28 @@ curl http://localhost:9000/minio/health/live
 
 # 버킷 존재 확인
 mc ls local/helpernote
+
+# 버킷이 없으면 생성
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/helpernote
+mc ls local/  # 확인
+```
+
+**파일 업로드 500 에러** (`/api/users/files`):
+```bash
+# 원인: MinIO 버킷이 생성되지 않음
+# 증상: 파일 업로드 시 500 Internal Server Error
+
+# 해결: 버킷 생성
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/helpernote
+
+# 확인: 파일 업로드 테스트
+echo "test" > /tmp/test.txt
+curl -i -X POST http://localhost:8000/api/users/files \
+  -H "Cookie: token=YOUR_TOKEN_HERE" \
+  -F "file=@/tmp/test.txt"
+# 200 OK 응답과 file_id, file_path, file_url 반환
 ```
 
 **SQLX_OFFLINE 에러**:

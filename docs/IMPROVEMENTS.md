@@ -113,6 +113,53 @@
 
 ---
 
+## 🐛 버그 수정 완료
+
+### 파일 업로드 500 에러 수정 ✅
+- **날짜**: 2025-10-17
+- **문제**: 사용자가 파일 업로드 시 500 Internal Server Error 발생
+  ```
+  POST /api/users/files → 500
+  [ERROR] Failed to upload to MinIO: bucket does not exist
+  ```
+
+- **근본 원인**: MinIO 서버는 실행 중이지만 `helpernote` 버킷이 생성되지 않음
+  - MinIO는 자동으로 버킷을 생성하지 않음
+  - 로컬 개발 환경 설정 시 버킷 생성 단계 누락
+
+- **해결책**:
+  ```bash
+  # MinIO Client 설정
+  mc alias set local http://localhost:9000 minioadmin minioadmin
+
+  # 버킷 생성
+  mc mb local/helpernote
+
+  # 확인
+  mc ls local/
+  # [2025-10-17 07:08:52 UTC]     0B helpernote/
+  ```
+
+- **검증**:
+  ```bash
+  # 파일 업로드 테스트
+  curl -i -X POST http://localhost:8000/api/users/files \
+    -H "Cookie: token=YOUR_TOKEN" \
+    -F "file=@test.txt"
+
+  # HTTP 200 OK 응답
+  # {"file_id":1,"file_path":"users/6/uuid.txt","file_url":"http://localhost:9000/helpernote/users/6/uuid.txt"}
+  ```
+
+- **관련 파일**:
+  - `backend/src/handlers/user_file.rs:177` - MinIO 업로드 함수
+  - `docs/LOCAL_TESTING.md:127` - MinIO 버킷 생성 가이드
+  - `docs/LOCAL_TESTING.md:524` - 트러블슈팅 섹션 추가
+
+- **영향 범위**: 로컬 개발 환경 (프로덕션은 Kubernetes에서 버킷 자동 생성)
+
+---
+
 ## 📊 개선 효과 측정
 
 ### 테스트 커버리지
