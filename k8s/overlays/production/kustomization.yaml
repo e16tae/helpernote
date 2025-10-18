@@ -6,7 +6,8 @@ resources:
   - ../../base
   - ../../sealed-secrets
 
-namePrefix: prod-
+# namePrefix removed - SealedSecrets are encrypted for unprefixed names
+# Use labels and namespace for environment isolation instead
 
 # Use labels instead of commonLabels to avoid patch conflicts
 labels:
@@ -75,23 +76,5 @@ patches:
     target:
       kind: Deployment
       name: minio
-    options:
-      allowNameChange: true
-  - path: sealedsecret-backend-template-patch.yaml
-    target:
-      kind: SealedSecret
-      name: backend-secret
-    options:
-      allowNameChange: true
-  - path: sealedsecret-minio-template-patch.yaml
-    target:
-      kind: SealedSecret
-      name: minio-secret
-    options:
-      allowNameChange: true
-  - path: sealedsecret-postgres-template-patch.yaml
-    target:
-      kind: SealedSecret
-      name: postgres-secret
     options:
       allowNameChange: true
