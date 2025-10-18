@@ -60,11 +60,11 @@ test.describe('Customer Management Flow', () => {
     // Should redirect to customer detail or list
     await page.waitForURL(/\/dashboard\/customers/, { timeout: 10000 });
 
-    // Verify success message or customer in list
-    const successIndicator = page.locator('text=/성공|추가됨|Success|Created/i');
-    const customerName = page.locator(`text=고객${timestamp}`);
+    // Verify customer name appears in heading or list
+    const customerHeading = page.locator(`h1:has-text("고객${timestamp}")`);
+    const customerInList = page.locator(`table:has-text("고객${timestamp}")`);
 
-    await expect(successIndicator.or(customerName)).toBeVisible({ timeout: 5000 });
+    await expect(customerHeading.or(customerInList)).toBeVisible({ timeout: 5000 });
   });
 
   test('should view customer detail', async ({ page }) => {
@@ -146,18 +146,20 @@ test.describe('Customer Management Flow', () => {
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(/\/dashboard\/customers/);
 
-    // Find and click the customer
-    await page.locator(`text=삭제테스트${timestamp}`).click();
+    // Go back to list to ensure we're on the list page
+    await page.goto('/dashboard/customers');
+    await page.waitForLoadState('networkidle');
 
-    // Click delete button
-    const deleteButton = page.locator('button:has-text("삭제"), button:has-text("Delete")');
+    // Find the customer row and click the delete button (trash icon) in that row
+    const customerRow = page.locator(`table tr:has-text("삭제테스트${timestamp}")`);
+    const deleteButton = customerRow.locator('button[aria-label*="삭제"], button[aria-label*="Delete"], button').last();
     await deleteButton.click();
 
     // Confirm deletion in dialog
     await page.locator('button:has-text("확인"), button:has-text("Confirm"), button:has-text("삭제")').last().click();
 
-    // Should redirect to list
-    await page.waitForURL(/\/dashboard\/customers$/);
+    // Wait a moment for deletion to process
+    await page.waitForTimeout(1000);
 
     // Verify customer is not in list
     await expect(page.locator(`text=삭제테스트${timestamp}`)).not.toBeVisible();

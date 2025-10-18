@@ -141,6 +141,7 @@ export default function NewCustomerPage() {
                   </Label>
                   <Input
                     id="name"
+                    name="name"
                     value={formData.name}
                     onChange={(e) =>
                       handleChange("name", e.target.value)
@@ -154,6 +155,7 @@ export default function NewCustomerPage() {
                   <Label htmlFor="birth_date">생년월일</Label>
                   <Input
                     id="birth_date"
+                    name="birth_date"
                     type="date"
                     value={formData.birth_date || ""}
                     onChange={(e) =>
@@ -169,6 +171,7 @@ export default function NewCustomerPage() {
                   </Label>
                   <Input
                     id="phone"
+                    name="phone"
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     placeholder="010-1234-5678"
@@ -182,6 +185,7 @@ export default function NewCustomerPage() {
                 <Label htmlFor="address">주소</Label>
                 <Input
                   id="address"
+                  name="address"
                   value={formData.address || ""}
                   onChange={(e) => handleChange("address", e.target.value)}
                   placeholder="주소를 입력하세요"
