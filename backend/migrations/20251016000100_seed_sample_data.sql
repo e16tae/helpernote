@@ -55,23 +55,25 @@ employee_id AS (
     FROM customers
     WHERE name = 'Demo Employee' AND deleted_at IS NULL
     LIMIT 1
+),
+demo_job_posting AS (
+    -- Insert demo job posting
+    INSERT INTO job_postings (customer_id, salary, description, employer_fee_rate)
+    SELECT
+        employer_id.id,
+        3500000,
+        'Demo employer looking for administrative assistant'::text,
+        NULL
+    FROM employer_id
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM job_postings
+        WHERE customer_id = employer_id.id
+          AND description = 'Demo employer looking for administrative assistant'
+          AND deleted_at IS NULL
+    )
+    RETURNING id
 )
--- Insert demo job posting
-INSERT INTO job_postings (customer_id, salary, description, employer_fee_rate)
-SELECT
-    employer_id.id,
-    3500000,
-    'Demo employer looking for administrative assistant'::text,
-    NULL
-FROM employer_id
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM job_postings
-    WHERE customer_id = employer_id.id
-      AND description = 'Demo employer looking for administrative assistant'
-      AND deleted_at IS NULL
-);
-
 -- Insert demo job seeking posting
 INSERT INTO job_seeking_postings (
     customer_id,
