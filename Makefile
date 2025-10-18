@@ -1,4 +1,4 @@
-.PHONY: help dev dev-up dev-down reset-data build up down logs clean test test-docker test-nerdctl
+.PHONY: help dev dev-up dev-down reset-data reset-production build up down logs clean test test-docker test-nerdctl
 
 help:
 	@echo "Helpernote - Development Commands"
@@ -7,7 +7,10 @@ help:
 	@echo "  make dev         - Start development environment (DB + MinIO only)"
 	@echo "  make dev-up      - Start development services in detached mode"
 	@echo "  make dev-down    - Stop development services"
-	@echo "  make reset-data  - Reset all DB and MinIO data (DESTRUCTIVE)"
+	@echo "  make reset-data  - Reset local DB and MinIO data (DESTRUCTIVE)"
+	@echo ""
+	@echo "Production:"
+	@echo "  make reset-production NAMESPACE=<ns> - Reset production data (EXTREMELY DANGEROUS)"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test        - Run all unit tests"
@@ -17,7 +20,7 @@ help:
 	@echo "  make test-docker   - Start test environment with Docker Compose"
 	@echo "  make test-nerdctl  - Start test environment with nerdctl compose"
 	@echo ""
-	@echo "Production:"
+	@echo "Docker:"
 	@echo "  make build       - Build all Docker images"
 	@echo "  make up          - Start all services (production mode)"
 	@echo "  make down        - Stop all services"
@@ -47,6 +50,21 @@ dev-down:
 # Reset all data (PostgreSQL + MinIO)
 reset-data:
 	@./scripts/reset-data.sh
+
+# Reset production data (DANGEROUS!)
+reset-production:
+	@echo "⚠️  WARNING: This will reset PRODUCTION data!"
+	@echo "Usage: make reset-production NAMESPACE=<namespace>"
+	@echo ""
+	@echo "Example:"
+	@echo "  make reset-production NAMESPACE=helpernote-staging"
+	@echo "  make reset-production NAMESPACE=helpernote-prod"
+	@echo ""
+	@if [ -z "$(NAMESPACE)" ]; then \
+		echo "Error: NAMESPACE not specified"; \
+		exit 1; \
+	fi
+	@./scripts/reset-production-data.sh $(NAMESPACE)
 
 # Production environment
 build:
