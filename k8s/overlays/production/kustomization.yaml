@@ -58,6 +58,25 @@ patches:
       name: frontend
     options:
       allowNameChange: true
+  # Fix secret references to use prod- prefix
+  - path: backend-secret-refs-patch.yaml
+    target:
+      kind: Deployment
+      name: backend
+    options:
+      allowNameChange: true
+  - path: postgres-secret-refs-patch.yaml
+    target:
+      kind: StatefulSet
+      name: postgres
+    options:
+      allowNameChange: true
+  - path: minio-secret-refs-patch.yaml
+    target:
+      kind: Deployment
+      name: minio
+    options:
+      allowNameChange: true
   - path: sealedsecret-backend-template-patch.yaml
     target:
       kind: SealedSecret
