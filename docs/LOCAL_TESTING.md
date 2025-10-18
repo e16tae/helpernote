@@ -204,7 +204,28 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-### 8. 정리
+### 8. 데이터 초기화 (필요시)
+
+모든 데이터베이스와 MinIO 데이터를 삭제하고 깨끗하게 시작하려면:
+
+```bash
+# 자동 스크립트 (권장)
+make reset-data
+
+# 또는 직접 실행
+./scripts/reset-data.sh
+
+# 특정 compose 타입 지정
+./scripts/reset-data.sh --docker    # Docker Compose 사용
+./scripts/reset-data.sh --nerdctl   # nerdctl compose 사용
+```
+
+**경고**: 이 명령은 모든 데이터를 삭제합니다!
+- 모든 데이터베이스 테이블 및 레코드
+- 모든 업로드된 파일 (MinIO)
+- 모든 컨테이너 볼륨
+
+### 9. 정리
 
 ```bash
 # 컨테이너 중지
@@ -216,6 +237,7 @@ docker compose -f docker-compose.dev.yml down -v
 # 또는 Makefile 사용
 make dev-down    # 컨테이너만 중지
 make clean       # 모든 데이터 삭제
+make reset-data  # 데이터 초기화 후 재시작
 ```
 
 ---
@@ -307,7 +329,19 @@ Docker Compose 방식과 동일합니다 (위 섹션 5 참조).
 
 Docker Compose 방식의 섹션 6, 7과 동일합니다.
 
-### 7. 정리
+### 7. 데이터 초기화 (필요시)
+
+Docker Compose 방식과 동일합니다 (위 섹션 8 참조).
+
+```bash
+# 자동 스크립트
+make reset-data
+
+# 또는 nerdctl 지정
+./scripts/reset-data.sh --nerdctl
+```
+
+### 8. 정리
 
 ```bash
 # 컨테이너 중지
@@ -514,6 +548,28 @@ curl http://localhost:9000/minio/health/live
 
 # 버킷 존재 확인
 mc ls local/helpernote
+
+# 버킷이 없으면 생성
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/helpernote
+mc ls local/  # 확인
+```
+
+**파일 업로드 500 에러** (`/api/users/files`):
+```bash
+# 원인: MinIO 버킷이 생성되지 않음
+# 증상: 파일 업로드 시 500 Internal Server Error
+
+# 해결: 버킷 생성
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/helpernote
+
+# 확인: 파일 업로드 테스트
+echo "test" > /tmp/test.txt
+curl -i -X POST http://localhost:8000/api/users/files \
+  -H "Cookie: token=YOUR_TOKEN_HERE" \
+  -F "file=@/tmp/test.txt"
+# 200 OK 응답과 file_id, file_path, file_url 반환
 ```
 
 **SQLX_OFFLINE 에러**:
@@ -615,6 +671,7 @@ sudo nerdctl exec -it nerd-postgres-1 bash
 ```bash
 make dev-up          # 의존성 시작
 make dev-down        # 의존성 중지
+make reset-data      # 모든 데이터 초기화 (DB + MinIO)
 make test            # 유닛 테스트
 make test-e2e        # E2E 테스트
 make test-all        # 모든 테스트
