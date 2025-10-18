@@ -8,7 +8,7 @@ metadata:
     # Force HTTPS in production
     konghq.com/protocols: "https"
     # Enable rate limiting
-    konghq.com/plugins: prod-rate-limiting-helpernote
+    konghq.com/plugins: rate-limiting-helpernote
 spec:
   tls:
     - hosts:
@@ -24,7 +24,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: prod-frontend
+                name: frontend
                 port:
                   number: 3000
     # API subdomain - Backend
@@ -35,6 +35,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: prod-backend
+                name: backend
                 port:
                   number: 8000
