@@ -57,7 +57,7 @@ export function Header() {
     <header className="flex h-16 items-center justify-between border-b bg-card px-6">
       <div className="flex items-center space-x-4">
         <MobileSidebar />
-        <h1 className="text-lg font-semibold">Welcome to Helpernote</h1>
+        <h2 className="text-lg font-semibold">Welcome to Helpernote</h2>
       </div>
       <div className="flex items-center space-x-2">
         <DropdownMenu>
