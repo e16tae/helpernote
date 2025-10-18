@@ -22,10 +22,10 @@ replicas:
 images:
   - name: ghcr.io/e16tae/helpernote-backend
     newName: ghcr.io/e16tae/helpernote-backend
-    newTag: main-d706e5e
+    newTag: main-49676e7
   - name: ghcr.io/e16tae/helpernote-frontend
     newName: ghcr.io/e16tae/helpernote-frontend
-    newTag: main-d706e5e
+    newTag: main-49676e7
 
 patches:
   - path: ingress-patch.yaml
