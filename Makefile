@@ -1,4 +1,4 @@
-.PHONY: help dev dev-up dev-down build up down logs clean test test-docker test-nerdctl
+.PHONY: help dev dev-up dev-down reset-data build up down logs clean test test-docker test-nerdctl
 
 help:
 	@echo "Helpernote - Development Commands"
@@ -7,6 +7,7 @@ help:
 	@echo "  make dev         - Start development environment (DB + MinIO only)"
 	@echo "  make dev-up      - Start development services in detached mode"
 	@echo "  make dev-down    - Stop development services"
+	@echo "  make reset-data  - Reset all DB and MinIO data (DESTRUCTIVE)"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test        - Run all unit tests"
@@ -42,6 +43,10 @@ dev-up:
 
 dev-down:
 	docker-compose -f docker-compose.dev.yml down
+
+# Reset all data (PostgreSQL + MinIO)
+reset-data:
+	@./scripts/reset-data.sh
 
 # Production environment
 build:
