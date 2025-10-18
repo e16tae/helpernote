@@ -4,8 +4,8 @@ test.describe('Matching Management Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Login before each test
     await page.goto('/login');
-    await page.fill('input[name="username"]', process.env.TEST_USERNAME || 'testuser');
-    await page.fill('input[name="password"]', process.env.TEST_PASSWORD || 'testpassword');
+    await page.fill('input[name="username"]', process.env.TEST_USERNAME || 'playwright');
+    await page.fill('input[name="password"]', process.env.TEST_PASSWORD || 'test1234');
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(/\/dashboard/);
   });

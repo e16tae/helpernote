@@ -119,7 +119,7 @@ export function Header() {
                 <span>계정 설정</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { void handleLogout(); }}>
+              <DropdownMenuItem onClick={() => { void handleLogout(); }} data-testid="logout-button">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>로그아웃</span>
               </DropdownMenuItem>
