@@ -14,6 +14,7 @@ use sqlx::PgPool;
 /// Create a customer memo
 pub async fn create_customer_memo(
     pool: &PgPool,
+    customer_id: i64,
     req: CreateCustomerMemoRequest,
     created_by: i64,
 ) -> Result<CustomerMemo, sqlx::Error> {
@@ -24,7 +25,7 @@ pub async fn create_customer_memo(
         VALUES ($1, $2, $3)
         RETURNING id, customer_id, memo_content, created_by, created_at as "created_at!", updated_at as "updated_at!", deleted_at
         "#,
-        req.customer_id,
+        customer_id,
         req.memo_content,
         created_by
     )
@@ -240,6 +241,7 @@ pub async fn delete_user_memo(pool: &PgPool, memo_id: i64) -> Result<(), sqlx::E
 /// Create a matching memo
 pub async fn create_matching_memo(
     pool: &PgPool,
+    matching_id: i64,
     req: CreateMatchingMemoRequest,
     created_by: i64,
 ) -> Result<MatchingMemo, sqlx::Error> {
@@ -250,7 +252,7 @@ pub async fn create_matching_memo(
         VALUES ($1, $2, $3)
         RETURNING id, matching_id, memo_content, created_by, created_at as "created_at!", updated_at as "updated_at!", deleted_at
         "#,
-        req.matching_id,
+        matching_id,
         req.memo_content,
         created_by
     )

@@ -74,17 +74,7 @@ pub async fn create_customer_memo(
             ),
         })?;
 
-    // Validate customer_id matches the path parameter
-    if payload.customer_id != customer_id {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "고객 ID가 일치하지 않습니다".to_string(),
-            }),
-        ));
-    }
-
-    let memo = memo::create_customer_memo(&pool, payload, user.user_id)
+    let memo = memo::create_customer_memo(&pool, customer_id, payload, user.user_id)
         .await
         .map_err(|e| {
             (
@@ -312,17 +302,7 @@ pub async fn create_matching_memo(
             )
         })?;
 
-    // Validate matching_id matches the path parameter
-    if payload.matching_id != matching_id {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "매칭 ID가 일치하지 않습니다".to_string(),
-            }),
-        ));
-    }
-
-    let memo = memo::create_matching_memo(&pool, payload, user.user_id)
+    let memo = memo::create_matching_memo(&pool, matching_id, payload, user.user_id)
         .await
         .map_err(|e| {
             (

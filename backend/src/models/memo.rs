@@ -38,7 +38,6 @@ pub struct MatchingMemo {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateCustomerMemoRequest {
-    pub customer_id: i64,
     pub memo_content: String,
 }
 
@@ -49,7 +48,6 @@ pub struct CreateUserMemoRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateMatchingMemoRequest {
-    pub matching_id: i64,
     pub memo_content: String,
 }
 
