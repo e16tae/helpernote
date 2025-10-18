@@ -132,7 +132,8 @@ describe('RegisterPage', () => {
     const phoneInput = screen.getByLabelText(/연락처/);
     const submitButton = screen.getByRole('button', { name: /회원가입/ });
 
-    await user.type(phoneInput, 'invalid-phone');
+    await user.clear(phoneInput);
+    await user.type(phoneInput, '010123');
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -158,7 +159,7 @@ describe('RegisterPage', () => {
   });
 
   // Skipping full integration test with Select component due to jsdom limitations
-  // E2E tests in e2e/register.spec.ts provide full coverage for this scenario
+  // Chrome DevTools Recorder 시나리오에서 전체 가입 흐름을 검증합니다.
   it.skip('should call API and redirect on successful registration', async () => {
     const user = userEvent.setup();
     const mockPush = jest.fn();
@@ -215,7 +216,7 @@ describe('RegisterPage', () => {
         title: '성공',
         description: '회원가입이 완료되었습니다!',
       });
-      expect(mockPush).toHaveBeenCalledWith('/login');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
   });
 

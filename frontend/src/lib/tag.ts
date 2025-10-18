@@ -72,4 +72,36 @@ export const tagApi = {
     const response = await apiClient.get<TagsListResponse>(`/api/customers/${customerId}/tags`);
     return response.data.tags || [];
   },
+
+  // Attach tags to job posting
+  attachToJobPosting: async (jobPostingId: number, tagIds: number[]): Promise<void> => {
+    await apiClient.post(`/api/job-postings/${jobPostingId}/tags`, { tag_ids: tagIds });
+  },
+
+  // Detach tag from job posting
+  detachFromJobPosting: async (jobPostingId: number, tagId: number): Promise<void> => {
+    await apiClient.delete(`/api/job-postings/${jobPostingId}/tags/${tagId}`);
+  },
+
+  // List job posting tags
+  listJobPostingTags: async (jobPostingId: number): Promise<Tag[]> => {
+    const response = await apiClient.get<TagsListResponse>(`/api/job-postings/${jobPostingId}/tags`);
+    return response.data.tags || [];
+  },
+
+  // Attach tags to job seeking
+  attachToJobSeeking: async (jobSeekingId: number, tagIds: number[]): Promise<void> => {
+    await apiClient.post(`/api/job-seekings/${jobSeekingId}/tags`, { tag_ids: tagIds });
+  },
+
+  // Detach tag from job seeking
+  detachFromJobSeeking: async (jobSeekingId: number, tagId: number): Promise<void> => {
+    await apiClient.delete(`/api/job-seekings/${jobSeekingId}/tags/${tagId}`);
+  },
+
+  // List job seeking tags
+  listJobSeekingTags: async (jobSeekingId: number): Promise<Tag[]> => {
+    const response = await apiClient.get<TagsListResponse>(`/api/job-seekings/${jobSeekingId}/tags`);
+    return response.data.tags || [];
+  },
 };

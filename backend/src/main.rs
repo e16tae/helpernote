@@ -1,29 +1,14 @@
-// Allow uninlined format args - these are clearer with explicit placeholders
-#![allow(clippy::uninlined_format_args)]
-
 use axum::{
-    extract::FromRef,
+    http::HeaderValue,
     middleware::{from_fn, from_fn_with_state},
     routing::{delete, get, post, put},
     Router,
 };
-use sqlx::PgPool;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod config;
-mod handlers;
-mod middleware;
-mod models;
-mod repositories;
-mod services;
-
-#[derive(Clone, FromRef)]
-struct AppState {
-    pool: PgPool,
-    config: config::Config,
-}
+use helpernote_backend::{config, handlers, middleware, AppState};
 
 #[tokio::main]
 async fn main() {
@@ -42,17 +27,25 @@ async fn main() {
 
     // Set up database connection pool
     let db_pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(config.database_max_connections)
         .connect(&config.database_url)
         .await
         .expect("Failed to connect to database");
 
-    // Run migrations automatically on startup
-    // Temporarily commented out for testing - schema.sql already initializes DB
-    // sqlx::migrate!("./migrations")
-    //     .run(&db_pool)
-    //     .await
-    //     .expect("Failed to run migrations");
+    let app_state = AppState {
+        pool: db_pool.clone(),
+        config: config.clone(),
+    };
+
+    if config.run_migrations_on_start {
+        tracing::info!("Running pending database migrations");
+        if let Err(error) = sqlx::migrate!("./migrations").run(&db_pool).await {
+            tracing::error!("Failed to run migrations: {error:?}");
+            panic!("Failed to run database migrations: {error}");
+        }
+    } else {
+        tracing::warn!("RUN_MIGRATIONS_ON_START=false – skipping database migrations");
+    }
 
     // Build application routes
     // Public routes (no authentication required)
@@ -61,6 +54,7 @@ async fn main() {
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/refresh", post(handlers::auth::refresh_token))
+        .route("/api/auth/logout", post(handlers::auth::logout))
         .route(
             "/api/auth/forgot-password",
             post(handlers::auth::forgot_password),
@@ -177,7 +171,8 @@ async fn main() {
         )
         .route(
             "/api/customers/{id}/profile-photo",
-            post(handlers::file::upload_customer_profile_photo),
+            post(handlers::file::upload_customer_profile_photo)
+                .delete(handlers::file::delete_customer_profile_photo),
         )
         // Job posting routes
         .route(
@@ -268,6 +263,10 @@ async fn main() {
         .route("/api/matchings", get(handlers::matching::list_matchings))
         .route("/api/matchings/{id}", get(handlers::matching::get_matching))
         .route(
+            "/api/matchings/{id}",
+            put(handlers::matching::update_matching),
+        )
+        .route(
             "/api/matchings/{id}/status",
             put(handlers::matching::update_matching_status),
         )
@@ -303,15 +302,9 @@ async fn main() {
         .route("/api/tags/{id}", put(handlers::tag::update_tag))
         .route("/api/tags/{id}", delete(handlers::tag::delete_tag))
         .layer(from_fn_with_state(
-            db_pool.clone(),
+            app_state.clone(),
             middleware::auth::auth_middleware,
         ));
-
-    // Create application state
-    let app_state = AppState {
-        pool: db_pool,
-        config: config.clone(),
-    };
 
     // Configure CORS
     // In production, replace with specific origins
@@ -320,10 +313,13 @@ async fn main() {
         CorsLayer::permissive()
     } else {
         // Production: restrictive CORS
+        let allowed_origin_values: Vec<HeaderValue> = config
+            .allowed_origins
+            .iter()
+            .filter_map(|origin| origin.parse().ok())
+            .collect();
         CorsLayer::new()
-            .allow_origin(
-                ["https://helpernote.my", "https://www.helpernote.my"].map(|s| s.parse().unwrap()),
-            )
+            .allow_origin(allowed_origin_values)
             .allow_methods([
                 axum::http::Method::GET,
                 axum::http::Method::POST,
@@ -341,9 +337,15 @@ async fn main() {
     };
 
     // Combine routes with global rate limiting
+    let csrf_config = config.clone();
+
     let app = Router::new()
         .merge(public_routes)
         .merge(protected_routes)
+        .layer(from_fn_with_state(
+            csrf_config,
+            middleware::csrf::csrf_protect,
+        ))
         .layer(from_fn(middleware::rate_limit::rate_limit_middleware))
         .layer(cors)
         .with_state(app_state);

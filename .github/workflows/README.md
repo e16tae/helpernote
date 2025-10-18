@@ -6,20 +6,13 @@ This directory contains all GitHub Actions workflows for the Helpernote project.
 
 ### CI (Continuous Integration)
 
-#### `ci-develop.yaml`
-- **Triggers**: Push/PR to `develop` branch
-- **Purpose**: Test and validate changes before merging to main
+#### `ci.yaml`
+- **Triggers**: Push to `develop`, PRs targeting `main` or `develop`
+- **Purpose**: Validate backend and frontend changes before merge
 - **Jobs**:
-  - Backend tests (Rust, Clippy, Tests)
-  - Frontend tests (ESLint, TypeScript, Build)
-  - Docker build test (conditional - PRs only)
-- **Duration**: ~8 minutes (without Docker), ~15 minutes (with Docker)
-
-#### `ci-main.yaml`
-- **Triggers**: PR to `main` branch
-- **Purpose**: Final validation before production deployment
-- **Jobs**: Same as ci-develop but with production configs
-- **Duration**: ~15 minutes (always includes Docker build)
+  - Backend tests (rustfmt, clippy, `cargo test` with Postgres service)
+  - Frontend tests (`npm run lint`, `npm run type-check`)
+- **Duration**: ~8 minutes
 
 ### CD (Continuous Deployment)
 
@@ -215,14 +208,12 @@ curl https://www.YOUR_DOMAIN.com
 ## Workflow Diagram
 
 ```
-Develop Branch:
-  Push/PR → ci-develop.yaml
+Develop/Main Branches:
+  Push/PR → ci.yaml
     ├─ Backend Tests (rustfmt, clippy, tests)
-    ├─ Frontend Tests (lint, typecheck, build)
-    └─ Docker Build (PRs only)
+    └─ Frontend Tests (lint, type-check)
 
 Main Branch:
-  PR → ci-main.yaml (final validation)
   Push → cd-production.yaml
     ├─ Build & Push Images
     ├─ Security Scan (Trivy)

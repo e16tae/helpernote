@@ -14,7 +14,7 @@ import { apiClient, getErrorMessage } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import type { RegisterRequest, SecurityQuestion } from "@/types/user";
 import { Logo } from "@/components/logo";
-import { formatPhoneNumber } from "@/lib/utils/phone";
+import { formatPhoneNumber, isValidPhoneNumber } from "@/lib/utils/phone";
 
 const SECURITY_QUESTIONS: SecurityQuestion[] = [
   { id: 1, question_text: "당신의 출생지는 어디입니까?", created_at: "", updated_at: "" },
@@ -39,7 +39,15 @@ const registerSchema = z.object({
   phone: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9-]+$/.test(val), {
+    .transform((val) => {
+      if (!val) {
+        return undefined;
+      }
+
+      const trimmed = val.trim();
+      return trimmed.length === 0 ? undefined : trimmed;
+    })
+    .refine((val) => !val || isValidPhoneNumber(val), {
       message: "올바른 전화번호 형식이 아닙니다",
     }),
   security_question_id: z
@@ -76,12 +84,14 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
+      const normalizedPhone = data.phone?.trim();
+
       const payload: RegisterRequest = {
         username: data.username,
         password: data.password,
         security_question_id: data.security_question_id,
         security_answer: data.security_answer,
-        phone: data.phone || undefined,
+        phone: normalizedPhone && normalizedPhone.length > 0 ? normalizedPhone : undefined,
       };
 
       await apiClient.post("/api/auth/register", payload);
@@ -89,7 +99,7 @@ export default function RegisterPage() {
         title: "성공",
         description: "회원가입이 완료되었습니다!",
       });
-      router.push("/login");
+      router.push("/dashboard");
     } catch (err: any) {
       console.error("Registration failed:", err);
       const errorMessage = getErrorMessage(err);

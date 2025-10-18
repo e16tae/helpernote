@@ -2,15 +2,15 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Users, Briefcase, UserSearch, Link2, DollarSign, TrendingUp, Plus, UserPlus, FileText } from "lucide-react";
 import { toNumber, formatCurrency } from "@/lib/utils/currency";
-import { useCustomers } from "@/hooks/queries/use-customers";
-import { useJobPostings } from "@/hooks/queries/use-job-postings";
-import { useJobSeekings } from "@/hooks/queries/use-job-seekings";
-import { useMatchings } from "@/hooks/queries/use-matchings";
+import { dashboardApi } from "@/lib/dashboard";
+import { getErrorMessage } from "@/lib/api-client";
 
 interface DashboardStats {
   totalCustomers: number;
@@ -22,47 +22,38 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  // React Query hooks
-  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
-  const { data: jobPostings = [], isLoading: isLoadingPostings } = useJobPostings();
-  const { data: jobSeekings = [], isLoading: isLoadingSeekings } = useJobSeekings();
-  const { data: matchings = [], isLoading: isLoadingMatchings } = useMatchings();
+  // Use single dashboard API instead of 4 separate queries
+  const { data: statsData, isLoading, error, refetch } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardApi.getStats,
+  });
 
-  const loading = isLoadingCustomers || isLoadingPostings || isLoadingSeekings || isLoadingMatchings;
-
-  // Calculate statistics using useMemo
+  // Convert backend response to frontend format
   const stats = useMemo<DashboardStats>(() => {
-    let pendingAmount = 0;
-    let totalRevenue = 0;
-
-    matchings.forEach((matching) => {
-      const employerFee = toNumber(matching.employer_fee_amount);
-      const employeeFee = toNumber(matching.employee_fee_amount);
-      const totalFee = employerFee + employeeFee;
-
-      totalRevenue += totalFee;
-
-      // Check if either side is unsettled
-      const jobPosting = jobPostings.find(p => p.id === matching.job_posting_id);
-      const jobSeeking = jobSeekings.find(s => s.id === matching.job_seeking_posting_id);
-
-      if (jobPosting?.settlement_status === "Unsettled") {
-        pendingAmount += employerFee;
-      }
-      if (jobSeeking?.settlement_status === "Unsettled") {
-        pendingAmount += employeeFee;
-      }
-    });
+    if (!statsData) {
+      return {
+        totalCustomers: 0,
+        jobPostingsCount: 0,
+        jobSeekingsCount: 0,
+        matchingsCount: 0,
+        pendingAmount: 0,
+        totalRevenue: 0,
+      };
+    }
 
     return {
-      totalCustomers: customers.length,
-      jobPostingsCount: jobPostings.length,
-      jobSeekingsCount: jobSeekings.length,
-      matchingsCount: matchings.length,
-      pendingAmount,
-      totalRevenue,
+      totalCustomers: statsData.total_customers,
+      jobPostingsCount: statsData.job_postings_count,
+      jobSeekingsCount: statsData.job_seekings_count,
+      matchingsCount: statsData.matchings_count,
+      pendingAmount: toNumber(statsData.pending_amount),
+      totalRevenue: toNumber(statsData.total_revenue),
     };
-  }, [customers, jobPostings, jobSeekings, matchings]);
+  }, [statsData]);
+
+  const handleRetry = () => {
+    void refetch();
+  };
 
   const statCards = [
     {
@@ -109,7 +100,19 @@ export default function DashboardPage() {
     },
   ];
 
-  if (loading) {
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTitle>데이터를 불러오지 못했습니다</AlertTitle>
+          <AlertDescription>{getErrorMessage(error)}</AlertDescription>
+        </Alert>
+        <Button onClick={handleRetry}>다시 시도</Button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div>

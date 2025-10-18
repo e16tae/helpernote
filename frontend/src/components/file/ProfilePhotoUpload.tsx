@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Loader2, User } from "lucide-react";
+import { Camera, Loader2, User, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fileApi } from "@/lib/file";
 import { getErrorMessage } from "@/lib/api-client";
@@ -22,6 +22,7 @@ export function ProfilePhotoUpload({
   onSuccess,
 }: ProfilePhotoUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(
     currentPhotoPath ? fileApi.getFileUrl(currentPhotoPath) : null
   );
@@ -105,6 +106,34 @@ export function ProfilePhotoUpload({
     fileInputRef.current?.click();
   };
 
+  const handleDelete = async () => {
+    if (!photoUrl) return;
+
+    try {
+      setDeleting(true);
+      // Note: This assumes the profile photo is stored as a regular customer file
+      // If there's a specific API endpoint for deleting profile photos, use that instead
+      await fileApi.deleteCustomerProfilePhoto(customerId);
+
+      setPhotoUrl(null);
+      toast({
+        title: "삭제 성공",
+        description: "프로필 사진이 삭제되었습니다.",
+      });
+      onSuccess?.();
+    } catch (error) {
+      console.error("Profile photo delete failed:", error);
+      const errorMessage = getErrorMessage(error);
+      toast({
+        variant: "destructive",
+        title: "삭제 실패",
+        description: errorMessage,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getInitials = (name: string) => {
     return name.charAt(0).toUpperCase();
   };
@@ -136,25 +165,48 @@ export function ProfilePhotoUpload({
           onChange={handleFileSelect}
           className="hidden"
         />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleButtonClick}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              업로드 중...
-            </>
-          ) : (
-            <>
-              <Camera className="mr-2 h-4 w-4" />
-              프로필 사진 변경
-            </>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleButtonClick}
+            disabled={uploading || deleting}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                업로드 중...
+              </>
+            ) : (
+              <>
+                <Camera className="mr-2 h-4 w-4" />
+                프로필 사진 변경
+              </>
+            )}
+          </Button>
+          {photoUrl && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDelete}
+              disabled={uploading || deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  삭제 중...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  삭제
+                </>
+              )}
+            </Button>
           )}
-        </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           JPG, PNG 형식, 최대 5MB
         </p>

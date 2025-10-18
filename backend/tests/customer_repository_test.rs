@@ -20,11 +20,11 @@ mod tests {
     #[test]
     fn test_pagination_defaults() {
         // Test default pagination values
-        let limit: Option<i64> = None;
-        let offset: Option<i64> = None;
+        let limit_input = "invalid-number";
+        let limit = limit_input.parse::<i64>().ok().unwrap_or(50);
 
-        let limit = limit.unwrap_or(50);
-        let offset = offset.unwrap_or(0);
+        let offset_input = "";
+        let offset = offset_input.parse::<i64>().ok().unwrap_or(0);
 
         assert_eq!(limit, 50);
         assert_eq!(offset, 0);
@@ -33,11 +33,11 @@ mod tests {
     #[test]
     fn test_pagination_custom_values() {
         // Test custom pagination values
-        let limit: Option<i64> = Some(100);
-        let offset: Option<i64> = Some(50);
+        let limit_input = "100";
+        let limit = limit_input.parse::<i64>().ok().unwrap_or(50);
 
-        let limit = limit.unwrap_or(50);
-        let offset = offset.unwrap_or(0);
+        let offset_input = "50";
+        let offset = offset_input.parse::<i64>().ok().unwrap_or(0);
 
         assert_eq!(limit, 100);
         assert_eq!(offset, 50);
@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn test_optional_fields() {
         // Test handling of optional fields
-        let phone: Option<String> = Some("010-1234-5678".to_string());
+        let phone = Some("010-1234-5678".to_string());
         let address: Option<String> = None;
 
         assert!(phone.is_some());
@@ -94,11 +94,19 @@ mod tests {
 
         // Test unwrap_or pattern used in update
         let current_phone = "010-0000-0000".to_string();
-        let updated_phone = phone.unwrap_or(current_phone);
+        let updated_phone = if let Some(value) = phone.clone() {
+            value
+        } else {
+            current_phone.clone()
+        };
         assert_eq!(updated_phone, "010-1234-5678");
 
         let current_address = "Old Address".to_string();
-        let updated_address = address.unwrap_or(current_address);
+        let updated_address = if let Some(value) = address.clone() {
+            value
+        } else {
+            current_address.clone()
+        };
         assert_eq!(updated_address, "Old Address");
     }
 

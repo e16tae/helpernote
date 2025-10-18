@@ -27,46 +27,23 @@ pub struct AuthErrorResponse {
 /// Middleware to authenticate requests using JWT tokens
 pub async fn auth_middleware(
     State(pool): State<PgPool>,
+    State(config): State<Config>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<AuthErrorResponse>)> {
     // Extract authorization header
-    let auth_header = req
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|header| header.to_str().ok())
-        .ok_or_else(|| {
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(AuthErrorResponse {
-                    error: "Missing authorization header".to_string(),
-                }),
-            )
-        })?;
-
-    // Extract token from "Bearer <token>" format
-    let token = auth_header.strip_prefix("Bearer ").ok_or_else(|| {
+    let token = extract_token(&req).ok_or_else(|| {
         (
             StatusCode::UNAUTHORIZED,
             Json(AuthErrorResponse {
-                error: "Invalid authorization header format".to_string(),
-            }),
-        )
-    })?;
-
-    // Get config and validate token
-    let config = Config::from_env().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(AuthErrorResponse {
-                error: format!("Config error: {}", e),
+                error: "Missing authentication token".to_string(),
             }),
         )
     })?;
 
     let auth_service = AuthService::new(&config.jwt_secret, config.jwt_expiration);
     let claims = auth_service
-        .validate_token(token, TokenType::Access)
+        .validate_token(&token, TokenType::Access)
         .map_err(|e| {
             (
                 StatusCode::UNAUTHORIZED,
@@ -138,4 +115,28 @@ pub mod extract {
             })
         }
     }
+}
+
+fn extract_token(req: &Request) -> Option<String> {
+    if let Some(header_value) = req
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|header| header.to_str().ok())
+    {
+        if let Some(token) = header_value.strip_prefix("Bearer ") {
+            return Some(token.to_string());
+        }
+    }
+
+    req.headers()
+        .get(header::COOKIE)
+        .and_then(|header| header.to_str().ok())
+        .and_then(|cookie_header| {
+            cookie_header.split(';').find_map(|pair| {
+                let trimmed = pair.trim();
+                trimmed
+                    .strip_prefix("token=")
+                    .map(|value| value.to_string())
+            })
+        })
 }

@@ -51,7 +51,13 @@ export const customerApi = {
   // Get customer memos
   getMemos: async (customerId: number): Promise<CustomerMemo[]> => {
     const response = await apiClient.get(`/api/customers/${customerId}/memos`);
-    return response.data;
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response.data?.memos)) {
+      return response.data.memos;
+    }
+    return [];
   },
 
   // Create customer memo
@@ -87,7 +93,13 @@ export const customerApi = {
   // Get customer files
   getFiles: async (customerId: number): Promise<CustomerFile[]> => {
     const response = await apiClient.get(`/api/customers/${customerId}/files`);
-    return response.data;
+    if (Array.isArray(response.data)) {
+      return response.data as CustomerFile[];
+    }
+    if (Array.isArray(response.data?.files)) {
+      return response.data.files as CustomerFile[];
+    }
+    return [];
   },
 
   // Upload customer file

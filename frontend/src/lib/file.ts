@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import { UploadFileResponse, ListFilesResponse } from "@/types/file";
+import { UploadFileResponse, ListFilesResponse, CustomerFile } from "@/types/file";
 
 export const fileApi = {
   /**
@@ -47,11 +47,24 @@ export const fileApi = {
   },
 
   /**
+   * Delete customer profile photo
+   */
+  deleteCustomerProfilePhoto: async (customerId: number): Promise<void> => {
+    await apiClient.delete(`/api/customers/${customerId}/profile-photo`);
+  },
+
+  /**
    * List customer files
    */
-  listCustomerFiles: async (customerId: number): Promise<ListFilesResponse> => {
+  listCustomerFiles: async (customerId: number): Promise<CustomerFile[]> => {
     const response = await apiClient.get(`/api/customers/${customerId}/files`);
-    return response.data;
+    if (Array.isArray(response.data)) {
+      return response.data as CustomerFile[];
+    }
+    if (Array.isArray(response.data?.files)) {
+      return response.data.files as CustomerFile[];
+    }
+    return [];
   },
 
   /**

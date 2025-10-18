@@ -1,9 +1,9 @@
 use axum::{
-    body::Bytes,
     extract::{Multipart, Path, State},
     http::StatusCode,
     Json,
 };
+use bytes::BytesMut;
 use s3::creds::Credentials;
 use s3::{Bucket, Region};
 use serde::{Deserialize, Serialize};
@@ -42,7 +42,7 @@ pub async fn upload_customer_file(
         })?;
 
     // Get multipart field
-    let field = multipart
+    let mut field = multipart
         .next_field()
         .await
         .map_err(|e| {
@@ -66,8 +66,10 @@ pub async fn upload_customer_file(
     let original_filename = field.file_name().map(|s| s.to_string());
     let content_type = field.content_type().map(|s| s.to_string());
 
-    // Read file data
-    let data = field.bytes().await.map_err(|e| {
+    // Read file data with size limit
+    const MAX_UPLOAD_SIZE_BYTES: usize = 10 * 1024 * 1024; // 10 MB
+    let mut data = BytesMut::new();
+    while let Some(chunk) = field.chunk().await.map_err(|e| {
         tracing::error!("Failed to read file bytes: {:?}", e);
         (
             StatusCode::BAD_REQUEST,
@@ -75,7 +77,18 @@ pub async fn upload_customer_file(
                 error: "Failed to read file data".to_string(),
             }),
         )
-    })?;
+    })? {
+        if data.len() + chunk.len() > MAX_UPLOAD_SIZE_BYTES {
+            return Err((
+                StatusCode::PAYLOAD_TOO_LARGE,
+                Json(ErrorResponse {
+                    error: "File exceeds 10MB limit".to_string(),
+                }),
+            ));
+        }
+        data.extend_from_slice(&chunk);
+    }
+    let data = data.freeze();
 
     // Determine file type
     let file_type = content_type
@@ -92,7 +105,7 @@ pub async fn upload_customer_file(
     let file_path = format!("customers/{}/{}", customer_id, file_name);
 
     // Upload to MinIO
-    upload_to_minio(&config, &file_path, data.clone())
+    upload_to_minio(&config, &file_path, &data)
         .await
         .map_err(|e| {
             tracing::error!("Failed to upload to MinIO: {:?}", e);
@@ -160,7 +173,7 @@ pub async fn upload_customer_profile_photo(
         })?;
 
     // Get multipart field
-    let field = multipart
+    let mut field = multipart
         .next_field()
         .await
         .map_err(|e| {
@@ -196,8 +209,10 @@ pub async fn upload_customer_profile_photo(
         }
     }
 
-    // Read file data
-    let data = field.bytes().await.map_err(|e| {
+    // Read file data with size limit
+    const MAX_UPLOAD_SIZE_BYTES: usize = 10 * 1024 * 1024; // 10 MB
+    let mut data = BytesMut::new();
+    while let Some(chunk) = field.chunk().await.map_err(|e| {
         tracing::error!("Failed to read file bytes: {:?}", e);
         (
             StatusCode::BAD_REQUEST,
@@ -205,7 +220,18 @@ pub async fn upload_customer_profile_photo(
                 error: "Failed to read file data".to_string(),
             }),
         )
-    })?;
+    })? {
+        if data.len() + chunk.len() > MAX_UPLOAD_SIZE_BYTES {
+            return Err((
+                StatusCode::PAYLOAD_TOO_LARGE,
+                Json(ErrorResponse {
+                    error: "File exceeds 10MB limit".to_string(),
+                }),
+            ));
+        }
+        data.extend_from_slice(&chunk);
+    }
+    let data = data.freeze();
 
     // Generate unique file path
     let file_extension = original_filename
@@ -216,7 +242,7 @@ pub async fn upload_customer_profile_photo(
     let file_path = format!("customers/{}/{}", customer_id, file_name);
 
     // Upload to MinIO
-    upload_to_minio(&config, &file_path, data.clone())
+    upload_to_minio(&config, &file_path, &data)
         .await
         .map_err(|e| {
             tracing::error!("Failed to upload to MinIO: {:?}", e);
@@ -273,6 +299,74 @@ pub async fn upload_customer_profile_photo(
         file_path,
         file_url,
     }))
+}
+
+/// Delete customer profile photo
+pub async fn delete_customer_profile_photo(
+    AuthUser { user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    State(config): State<Config>,
+    Path(customer_id): Path<i64>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    // Verify customer ownership
+    let _customer = crate::repositories::customer::get_customer_by_id(&pool, customer_id, user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get customer: {:?}", e);
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Customer not found".to_string(),
+                }),
+            )
+        })?;
+
+    // Find profile photo
+    let profile_photo = file::get_customer_profile_photo(&pool, customer_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get profile photo: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to query profile photo".to_string(),
+                }),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Profile photo not found".to_string(),
+                }),
+            )
+        })?;
+
+    // Delete from MinIO
+    delete_from_minio(&config, &profile_photo.file_path)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete from MinIO: {:?}", e);
+            // Continue anyway - soft delete in DB is more important
+        })
+        .ok();
+
+    // Soft delete in database
+    file::delete_customer_file(&pool, profile_photo.id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete profile photo: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to delete profile photo".to_string(),
+                }),
+            )
+        })?;
+
+    Ok(Json(
+        serde_json::json!({ "message": "Profile photo deleted successfully" }),
+    ))
 }
 
 /// List customer files
@@ -380,7 +474,7 @@ pub async fn delete_customer_file(
 }
 
 /// Helper function to upload to MinIO
-async fn upload_to_minio(config: &Config, path: &str, data: Bytes) -> Result<(), String> {
+async fn upload_to_minio(config: &Config, path: &str, data: &[u8]) -> Result<(), String> {
     let credentials = Credentials::new(
         Some(&config.minio_access_key),
         Some(&config.minio_secret_key),
@@ -400,7 +494,7 @@ async fn upload_to_minio(config: &Config, path: &str, data: Bytes) -> Result<(),
         .with_path_style();
 
     bucket
-        .put_object(path, &data)
+        .put_object(path, data)
         .await
         .map_err(|e| format!("Failed to put object: {}", e))?;
 

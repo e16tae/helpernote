@@ -35,6 +35,7 @@ main ──(자동 배포)──► 프로덕션
 
 3. **작업 및 검증**
    - `make test`, `npm run lint`, `npm run build` 등을 실행하고 출력 요약을 기록합니다.
+   - UI 플로우 검증은 Chrome DevTools Recorder 시나리오를 기반으로 수동 점검합니다.
 
 4. **PR 생성**
    - 제목 예시: `feat: sync commission report columns`

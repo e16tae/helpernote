@@ -4,6 +4,7 @@
 use crate::models::matching::{
     CreateMatchingRequest, Matching, MatchingStatus, UpdateMatchingRequest,
 };
+use chrono::Utc;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 
@@ -153,8 +154,19 @@ pub async fn update_matching_status(
     let employer_fee = (final_salary * final_employer_rate) / Decimal::from(100);
     let employee_fee = (final_salary * final_employee_rate) / Decimal::from(100);
 
-    let matching = sqlx::query_as!(
-        Matching,
+    let next_status = req
+        .matching_status
+        .unwrap_or(current.matching_status.clone());
+
+    let new_completed_at = if next_status == MatchingStatus::Completed {
+        current
+            .completed_at
+            .or_else(|| Some(Utc::now().naive_utc()))
+    } else {
+        current.completed_at
+    };
+
+    let matching = sqlx::query_as::<_, Matching>(
         r#"
         UPDATE matchings
         SET
@@ -164,8 +176,10 @@ pub async fn update_matching_status(
             employer_fee_amount = $4,
             employee_fee_amount = $5,
             matching_status = $6,
-            cancellation_reason = $7
-        WHERE id = $8 AND deleted_at IS NULL
+            cancellation_reason = $7,
+            completed_at = $8,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $9 AND deleted_at IS NULL
         RETURNING
             id, job_posting_id, job_seeking_posting_id, matched_at as "matched_at!", agreed_salary,
             employer_fee_rate, employee_fee_rate, employer_fee_amount, employee_fee_amount,
@@ -173,15 +187,16 @@ pub async fn update_matching_status(
             cancellation_reason, cancelled_at, cancelled_by, completed_at,
             created_at as "created_at!", updated_at as "updated_at!", deleted_at
         "#,
-        final_salary,
-        final_employer_rate,
-        final_employee_rate,
-        employer_fee,
-        employee_fee,
-        req.matching_status.unwrap_or(current.matching_status) as MatchingStatus,
-        req.cancellation_reason.or(current.cancellation_reason),
-        matching_id
     )
+    .bind(final_salary)
+    .bind(final_employer_rate)
+    .bind(final_employee_rate)
+    .bind(employer_fee)
+    .bind(employee_fee)
+    .bind(next_status)
+    .bind(req.cancellation_reason.or(current.cancellation_reason))
+    .bind(new_completed_at)
+    .bind(matching_id)
     .fetch_one(pool)
     .await?;
 

@@ -34,6 +34,7 @@ thiserror = "2.0"
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+bytes = "1"
 
 # Date/Time
 chrono = { version = "0.4", features = ["serde"] }
@@ -49,6 +50,7 @@ validator = { version = "0.20", features = ["derive"] }
 
 # Rate limiting
 tower_governor = "0.4"
+axum-prometheus = { version = "0.9.0", optional = true }
 
 [dev-dependencies]
 # Testing
@@ -57,3 +59,22 @@ axum-test = "16"
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
 serde_json = "1.0"
+
+[[test]]
+name = "unit"
+path = "tests/unit/mod.rs"
+
+[[test]]
+name = "integration_workflows"
+path = "tests/integration_workflows.rs"
+
+[[test]]
+name = "customer_repository_test"
+path = "tests/customer_repository_test.rs"
+
+[[test]]
+name = "auth_integration_test"
+path = "tests/auth_integration_test.rs"
+
+[features]
+axum-prometheus = ["dep:axum-prometheus"]

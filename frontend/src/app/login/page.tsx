@@ -35,6 +35,7 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
+    setFocus,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -45,9 +46,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      const response = await apiClient.post("/api/auth/login", data);
-      const { access_token } = response.data;
-      localStorage.setItem("token", access_token);
+      await apiClient.post("/api/auth/login", data);
       router.push("/dashboard");
     } catch (err: any) {
       console.error("Login failed:", err);
@@ -56,17 +55,18 @@ export default function LoginPage() {
         type: "manual",
         message: errorMessage,
       });
+      setFocus("username");
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-3">
           <div className="flex justify-center">
             <Logo size="lg" />
           </div>
-          <CardTitle className="text-2xl font-bold text-center">로그인</CardTitle>
+          <h1 className="text-2xl font-bold text-center">로그인</h1>
           <CardDescription className="text-center">
             계정에 로그인하세요
           </CardDescription>
@@ -111,13 +111,16 @@ export default function LoginPage() {
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               계정이 없으신가요?{" "}
-              <Link href="/register" className="text-primary hover:underline">
+              <Link
+                href="/register"
+                className="font-medium text-foreground underline underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
                 회원가입
               </Link>
             </p>
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </main>
   );
 }

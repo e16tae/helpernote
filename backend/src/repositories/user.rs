@@ -1,4 +1,5 @@
 use crate::models::user::User;
+use bcrypt::verify;
 use chrono::Local;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -42,9 +43,9 @@ impl UserRepository {
             return Err(UserRepositoryError::UsernameExists);
         }
 
-        // Default fee rates
-        let default_employer_fee = Decimal::new(15, 2); // 0.15 (15%)
-        let default_employee_fee = Decimal::new(10, 2); // 0.10 (10%)
+        // Default fee rates (stored as whole-number percentages)
+        let default_employer_fee = Decimal::from(15);
+        let default_employee_fee = Decimal::from(10);
 
         // Create new user
         let now = Local::now().naive_local();
@@ -194,11 +195,21 @@ impl UserRepository {
             return Err(UserRepositoryError::UserNotFound);
         }
 
-        // For security answers, we should compare them case-insensitively
-        if user.security_answer.to_lowercase() != security_answer.to_lowercase() {
-            return Err(UserRepositoryError::UserNotFound);
-        }
+        let normalized = security_answer.trim().to_lowercase();
+        let stored_answer = user.security_answer.trim();
 
-        Ok(user.id)
+        if stored_answer.starts_with("$2") {
+            let is_valid = verify(&normalized, stored_answer)
+                .map_err(|_| UserRepositoryError::UserNotFound)?;
+            if is_valid {
+                Ok(user.id)
+            } else {
+                Err(UserRepositoryError::UserNotFound)
+            }
+        } else if stored_answer.eq_ignore_ascii_case(security_answer.trim()) {
+            Ok(user.id)
+        } else {
+            Err(UserRepositoryError::UserNotFound)
+        }
     }
 }
